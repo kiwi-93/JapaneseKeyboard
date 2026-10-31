@@ -102,6 +102,18 @@ class MergeSourceTest(unittest.TestCase):
 
 
 class NotificationTest(unittest.TestCase):
+    def test_manual_upload_is_kept_enabled_and_android_build_is_disabled(self):
+        workflows = {"workflows": [
+            {"id": 1, "path": ".github/workflows/sync-upstream.yml", "state": "active"},
+            {"id": 2, "path": ".github/workflows/r2-upload.yml", "state": "active"},
+            {"id": 3, "path": ".github/workflows/android.yml", "state": "active"},
+        ]}
+        with patch.object(sync, "api", side_effect=[workflows, None]) as api:
+            sync.disable_other_workflows()
+            self.assertEqual(2, api.call_count)
+            self.assertEqual("PUT", api.call_args.args[1])
+            self.assertTrue(api.call_args.args[0].endswith("/3/disable"))
+
     def test_repeated_conflict_does_not_send_a_comment(self):
         issue = {"number": 1, "user": {"login": "github-actions[bot]"},
                  "body": sync.NOTICE_MARKER + "\n<!-- sumire-sync:conflict:abc -->"}

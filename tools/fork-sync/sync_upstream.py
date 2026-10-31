@@ -82,9 +82,10 @@ def pages(path):
 
 
 def disable_other_workflows():
+    allowed = {".github/workflows/sync-upstream.yml", ".github/workflows/r2-upload.yml"}
     workflows = api(f"repos/{REPOSITORY}/actions/workflows?per_page=100")["workflows"]
     for workflow in workflows:
-        if (workflow["path"] != ".github/workflows/sync-upstream.yml"
+        if (workflow["path"] not in allowed
                 and workflow["state"] == "active"):
             api(f"repos/{REPOSITORY}/actions/workflows/{workflow['id']}/disable", "PUT")
 

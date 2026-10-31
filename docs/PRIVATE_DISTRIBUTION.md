@@ -1,33 +1,29 @@
 # 個人用APKのR2配布
 
-ビルド方法は変更しません。現在の手順で作成した署名付きAPKを、Cloudflare R2の `sumire-apk-private` に手動でアップロードし、`apk.ctrlcv.dev` をCloudflare Accessで保護します。GitHub Releasesへの公開や、M720qへのビルド環境構築は行いません。
+ビルド方法は変更しません。現在の手順で作成した署名付きAPKを、既存のCloudflare R2バケット `apk-private-store` に手動でアップロードします。配布ドメインは `apk.ctrlcv.dev` です。既存のCloudflare Access・GitHubログイン・許可ポリシーをそのまま利用し、GitHub Releasesへの公開やM720qの環境構築は行いません。
 
 ## 認証と公開範囲
 
-- 既存のCloudflare AccessのGitHubログイン連携を再利用します。新しいGitHub OAuthアプリやメールのワンタイムコード認証は作成しません。
-- AccessアプリはGitHub連携だけをログイン方法として使い、ポリシーでは本人のGitHub登録メールとそのGitHub連携の両方を必須にします。メールは許可判定に使い、ログイン操作はGitHubで行います。
-- Accessアプリと本人限定ポリシーを確認した後でR2のカスタムドメインを接続します。
-- `r2.dev` の公開URLを無効にします。他の有効なカスタムドメインがある場合も、保護を迂回できるためアップロードを中止します。
-- 未ログインのアクセスがAccessのログイン画面へ転送されることを確認するまで、APKはアップロードしません。
+- 既存のCloudflare AccessのGitHubログイン連携を再利用します。認証設定の新規作成・変更はしません。
+- 配布処理の開始時と公開直前に、APKのURLと `latest.json` が未ログインでは `ctrlcv.cloudflareaccess.com` のAccessログインへ転送されることを検証します。
+- バケットの許可ユーザーや `r2.dev` の無効化は既存のCloudflare設定で管理します。今回のS3キーにはAccess管理権限がないため、これらの管理設定は書き換えません。
+- APKの再署名はせず、既存のFork用署名証明書に一致するAPKだけを準備します。
 
-既存のAccessアプリ・ポリシーが上記の条件と異なる場合は、自動では上書きせず停止します。初回のCloudflare API認証と、実環境での動作確認が必要です。
+既存のテスト画像で確認済みの認証を利用します。ダウンロードを本人に限定するポリシーと、別の公開URLによる迂回がないことはCloudflare管理画面で維持してください。アップロード処理は、未ログインでもAPKに到達できる状態では停止します。
 
 参考: [R2をAccessで保護する公式手順](https://developers.cloudflare.com/r2/tutorials/cloudflare-access/)、[GitHubログイン連携](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/github/)
 
-## Cloudflare APIの認証
+## GitHub ActionsのSecrets
 
-`CLOUDFLARE_API_TOKEN` 環境変数で認証します。トークンの値はチャット、リポジトリ、コマンド引数へ書き込まないでください。既存のDNS専用トークンは、そのまま維持します。
+このForkのRepository Secretsを使用します。既存のDNS専用トークンや、追加のCloudflare管理APIトークンは使用しません。
 
-対象アカウントと `ctrlcv.dev` ゾーンに対し、以下を扱えるトークンが必要です。
-
-| リソース | 権限 |
+| Secret | 内容 |
 | --- | --- |
-| Account | Workers R2 Storage: Edit |
-| Account | Access: Apps and Policies: Edit |
-| Account | Access: Organizations, Identity Providers, and Groups: Read |
-| Zone (`ctrlcv.dev`) | Zone: Read |
+| `R2_ACCESS_KEY_ID` | 対象バケットのオブジェクト読み書き用Access Key ID |
+| `R2_SECRET_ACCESS_KEY` | 対応するSecret Access Key |
+| `CF_ACCOUNT_ID` | R2バケットがあるCloudflare Account ID |
 
-R2の有効化と、Zero Trust組織・GitHub連携の設定は完了している必要があります。トークン権限やR2の契約状態に不足がある場合はエラーで停止します。
+S3キーは対象バケットのオブジェクト読み書き・一覧取得に使用します。署名鍵のSecretsは配布処理では使用しません。
 
 ## 既存APKを検証・準備する
 
@@ -44,31 +40,31 @@ python3 tools/private-distribution/prepare_bundle.py \
 
 アプリID、署名証明書、APKのSHA-256を検証し、`sumire.apk`、`sumire.apk.sha256`、`build.json` を準備します。GitHubにコミットするのは配布用スクリプトと説明書だけです。
 
-## R2へ配置する
+## ビルド済みAPKをR2へ配置する
 
-既存のGitHub連携が1つであることを確認して再利用します。本人のGitHub登録メールはプライベートな設定として指定してください。
+Node.js 24以降と、ForkのActionsを手動実行できるGitHub CLI認証を使用します。R2の永続的なSecret Access KeyをPCにコピーする必要はありません。
 
 ```sh
-python3 tools/private-distribution/publish_r2.py \
-  --bundle /private/path/to/upload-bundle \
-  --email <本人のGitHub登録メール>
+node tools/private-distribution/upload_existing.cjs --bundle /private/path/to/upload-bundle
 ```
 
-アップロードにはNode.js/npmとWrangler `4.156.0` を使用します。保存先はAPKのversionCode・ソースコミット・SHA-256を含む固定パスです。バージョン別の3ファイルが揃った後にだけ `latest.json` を更新します。
+このコマンドがアップロード専用の手動Actionsを起動します。Actionsは3ファイルだけに有効な15分間のアップロード権限を作り、PCごとに生成した一時公開鍵で暗号化して返します。公開リポジトリのArtifactにも、平文のアップロードURLやAPKは保存しません。一時秘密鍵はPCのプロセス内だけで使用します。
+
+PCからR2へ3ファイルを直接送信した後、ActionsがR2上の全ファイルを読み直してSHA-256を検証し、成功時だけ `latest.json` を更新します。古いversionCodeへの最新版の巻き戻しは拒否します。ビルド・テスト・Release公開は実行しません。
 
 ```text
-https://apk.ctrlcv.dev/builds/<versionCode>-<commit>-<sha256>/sumire.apk
-https://apk.ctrlcv.dev/builds/<versionCode>-<commit>-<sha256>/sumire.apk.sha256
-https://apk.ctrlcv.dev/builds/<versionCode>-<commit>-<sha256>/build.json
+https://apk.ctrlcv.dev/builds/<versionCode>-<commit>-<request-id>/sumire.apk
+https://apk.ctrlcv.dev/builds/<versionCode>-<commit>-<request-id>/sumire.apk.sha256
+https://apk.ctrlcv.dev/builds/<versionCode>-<commit>-<request-id>/build.json
 https://apk.ctrlcv.dev/latest.json
 ```
 
-これらのURLはGitHubログインと本人限定ポリシーで保護します。R2のドメイン直下はファイル一覧を返さないため、APKの完全なURLを使ってください。アップロード成功だけでは本人のログイン・ダウンロード確認までは完了しないため、最後にブラウザーで実際のAPKをダウンロードして確認します。
+これらのURLは既存のGitHubログインとAccessの許可ポリシーで保護します。R2のドメイン直下はファイル一覧を返さないため、APKの完全なURLを使ってください。配布結果は準備フォルダーの `upload-result.json` にも保存します。最後にブラウザーでGitHub認証後のAPKダウンロードを確認してください。
 
 ## 配布処理のテスト
 
 ```sh
-python3 -m unittest discover -s tools/private-distribution -p 'test_*.py' -v
+node --test tools/private-distribution/r2_protocol.test.cjs
 ```
 
-本人以外を許可するポリシー、GitHub以外のログイン、`r2.dev` などの迂回経路、準備後に書き換えられたAPKを拒否することを検証します。
+APK識別情報とファイル名、暗号化したアップロード権限、期限と送信先の検証、Accessで保護されていない配布パスの拒否をテストします。初回の実行では、既存バケット・Secretsを使った送信と、R2側のチェックサム検証も行います。
