@@ -1,6 +1,6 @@
 # 個人用APKのR2配布
 
-本家更新の自動マージ後、GitHub Actionsでビルド・署名・検証したAPKを既存のCloudflare R2バケット `apk-private-store` に配布します。従来どおりローカルで作成した署名付きAPKの手動アップロードも利用できます。配布ドメインは `apk.ctrlcv.dev` です。既存のCloudflare Access・GitHubログイン・許可ポリシーをそのまま利用し、GitHub Releasesへの公開やM720qの環境構築は行いません。
+本家更新の自動マージ後、GitHub ActionsでAPKをビルドします。署名・R2配布は明示的に有効化するまで停止し、有効化後は検証したAPKを既存のCloudflare R2バケット `apk-private-store` に配布します。従来どおりローカルで作成した署名付きAPKの手動アップロードも利用できます。配布ドメインは `apk.ctrlcv.dev` です。既存のCloudflare Access・GitHubログイン・許可ポリシーをそのまま利用し、GitHub Releasesへの公開やM720qの環境構築は行いません。
 
 ## 認証と公開範囲
 
@@ -31,14 +31,14 @@ S3キーは対象バケットのオブジェクト読み書き・一覧取得に
 
 | 種別 | 名前 | 内容 |
 | --- | --- | --- |
-| Variable | `SUMIRE_AGE_RECIPIENT` | ageの公開鍵（`age1...`） |
+| Variable または Secret | `SUMIRE_AGE_RECIPIENT` | ageの公開鍵（`age1...`）。両方ある場合はVariableを優先 |
 | Secret | `SUMIRE_AGE_IDENTITY` | 対応するage秘密鍵（`AGE-SECRET-KEY-1...`） |
 | Secret | `KEYSTORE_BASE64` | 既存Fork用keystoreファイルのBase64全体 |
 | Secret | `KEYSTORE_PASSWORD` | keystoreのパスワード |
 | Secret | `KEY_ALIAS` | 既存の署名鍵のエイリアス |
 | Secret | `KEY_PASSWORD` | 署名鍵のパスワード |
 
-[age公式リリース](https://github.com/FiloSottile/age/releases)を使い、安全なローカル環境で `age-keygen -o identity.txt` を実行し、表示される公開鍵をVariableへ、ファイル内の秘密鍵をSecretへ登録します。秘密鍵ファイルは安全に保管し、Gitへ追加しないでください。Keystoreは現在インストール済みアプリと同じものを使用します。 WindowsでKeystoreをBase64にして登録する場合は、PowerShellで次を実行し、クリップボードの内容を `KEYSTORE_BASE64` のSecret欄に貼り付けてください。パスを実際のファイルに変更し、履歴やリポジトリへ値を書き出さないでください。
+[age公式リリース](https://github.com/FiloSottile/age/releases)を使い、安全なローカル環境で `age-keygen -o identity.txt` を実行し、表示される公開鍵をVariableまたはSecretへ、ファイル内の秘密鍵をSecretへ登録します。公開鍵をSecretとして登録した場合もビルドジョブへ渡しますが、秘密鍵・署名鍵・R2認証情報は渡しません。秘密鍵ファイルは安全に保管し、Gitへ追加しないでください。Keystoreは現在インストール済みアプリと同じものを使用します。 WindowsでKeystoreをBase64にして登録する場合は、PowerShellで次を実行し、クリップボードの内容を `KEYSTORE_BASE64` のSecret欄に貼り付けてください。パスを実際のファイルに変更し、履歴やリポジトリへ値を書き出さないでください。
 
 ```powershell
 [Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\path\to\fork.keystore')) | Set-Clipboard
@@ -49,6 +49,17 @@ S3キーは対象バケットのオブジェクト読み書き・一覧取得に
 APKのversionCodeは `1000000 + 実行番号×1000 + 再実行回数×4 + 1`（ARM64）です。再実行回数250以上またはAndroidの上限を超える場合は停止します。同じコミットの再実行も別番号です。同一番号の異なるAPK、古い番号、配布済みコミットの子孫でないコミットは拒否します。更新対象の `latest.json` はETagを使う条件付き書き込みで、手動・自動の同時実行や外部からの更新による巻き戻しを防ぎます。手動・自動は共通の `private-r2-upload` グループで直列化します。自動版を配布した後は、それより小さい番号のローカルAPKは手動でも配布できません。ローカルビルドで `-PsumireVersionCode` と `-PsumireVersionSuffix` を指定する場合は、ABI分割による加算も含め、既存の最新版より大きい番号を使ってください。GitHubの待機枠は1件なので、複数の待機実行があると古い待機実行がキャンセルされる場合があります。
 
 署名済みAPK・チェックサム・build.jsonをR2から読み戻して検証し、Accessへのリダイレクトを再確認してから `latest.json` を更新します。検証やアップロードの失敗時には途中のファイルが残る場合がありますが、最新版の更新には進みません。最後の条件付き書き込み中に通信が途切れた場合は、R2側で書き込み済みかを失敗通知だけでは断定できません。再実行前にAccess認証後の `latest.json` を確認してください。 また、最新版を更新した後に通知Issueへの投稿だけが失敗した場合も、Actionsは失敗表示になりますがAPKは配布済みです。自動実行の成否は通知Issue #1に記録されます。
+
+## Push後の初回確認と配布の有効化
+
+自動配布は `SUMIRE_AUTO_PUBLISH` が未設定または `true` 以外なら停止します。Pushだけでは設定を変更しません。この停止は自動署名・自動R2配布に適用されます。既存の手動アップロードWorkflowは別途動作するため、確認中は起動しないでください。定期同期は有効なままで、更新があればマージ・テスト・未署名APKの暗号化まで進む場合があります。
+
+1. GitHubの **Actions → Sync upstream source → Run workflow** でブランチ `custom` を選び、**verify_age_only** だけをオンにして実行します。`force_build` はオフ、`source_sha` は空欄にします。これが初回の鍵確認です。今回のPushでは実行しません。
+2. 実行の `publish` ジョブで **Age key pair verified** と表示されれば、登録済み秘密鍵から導出した公開鍵が、登録された公開鍵と一致しています。鍵の値はログに出力しません。同期・ビルド・署名・R2アクセスも行いません。失敗した場合は秘密鍵と公開鍵を再確認し、鍵やログを公開しないでください。
+3. 配布を開始する準備が整うまでは `SUMIRE_AUTO_PUBLISH` を未設定のままにします。配布を許可するときだけ、GitHubの **Settings → Secrets and variables → Actions → Variables** に `SUMIRE_AUTO_PUBLISH` を `true` として設定します。以後、定期同期でマージとテスト・ビルドが成功するとR2へ自動配布されます。停止するときはVariableを削除するか `false` にしてください。既に開始した実行の停止には別途キャンセルが必要です。
+4. 初回配布を自分で開始する場合は、上記を有効化した後、**Sync upstream source → Run workflow** で `verify_age_only` をオフ、`force_build` をオンにします。この実行は実際に本番R2へアップロードします。完了後、通知IssueとAccess認証後の `latest.json` を確認します。
+
+どの手順でもGitHub ReleasesへのAPK公開は行いません。
 
 ## 既存APKを検証・準備する
 

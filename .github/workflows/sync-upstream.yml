@@ -5,6 +5,10 @@ on:
     - cron: '17 22 * * *'
   workflow_dispatch:
     inputs:
+      verify_age_only:
+        description: Only verify the age key pair (no sync, build or publication)
+        type: boolean
+        default: false
       force_build:
         description: Build even when upstream has not changed
         type: boolean
@@ -21,7 +25,7 @@ concurrency:
 
 jobs:
   sync:
-    if: github.repository == 'kiwi-93/JapaneseKeyboard' && github.ref == 'refs/heads/custom'
+    if: github.repository == 'kiwi-93/JapaneseKeyboard' && github.ref == 'refs/heads/custom' && !(github.event_name == 'workflow_dispatch' && inputs.verify_age_only)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -136,7 +140,7 @@ jobs:
           tar -xzf "$RUNNER_TEMP/age.tar.gz" -C "$RUNNER_TEMP" age/age
       - name: Encrypt the unsigned APK
         env:
-          RECIPIENT: ${{ vars.SUMIRE_AGE_RECIPIENT }}
+          RECIPIENT: ${{ vars.SUMIRE_AGE_RECIPIENT || secrets.SUMIRE_AGE_RECIPIENT }}
         run: |
           set -euo pipefail
           [[ "$RECIPIENT" =~ ^age1[0-9a-z]+$ ]]
@@ -152,7 +156,7 @@ jobs:
 
   publish:
     needs: [sync, build]
-    if: always() && needs.sync.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'failure')
+    if: always() && github.repository == 'kiwi-93/JapaneseKeyboard' && github.ref == 'refs/heads/custom' && ((github.event_name == 'workflow_dispatch' && inputs.verify_age_only) || (needs.sync.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'failure')))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -163,7 +167,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Check out only the reviewed publisher tools
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: e139131a13be542038adfcb4c69fde64ee9a2934
@@ -171,27 +175,44 @@ jobs:
           persist-credentials: false
           submodules: false
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
       - run: sdkmanager 'build-tools;36.0.0'
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
         with:
           name: encrypted-unsigned-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/encrypted
       - name: Install verified age
-        if: needs.build.result == 'success'
+        if: (needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only) || (github.event_name == 'workflow_dispatch' && inputs.verify_age_only)
         run: |
           curl --fail --location --silent --show-error -o "$RUNNER_TEMP/age.tar.gz" https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz
           echo 'cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10  '"$RUNNER_TEMP/age.tar.gz" | sha256sum -c -
-          tar -xzf "$RUNNER_TEMP/age.tar.gz" -C "$RUNNER_TEMP" age/age
+          tar -xzf "$RUNNER_TEMP/age.tar.gz" -C "$RUNNER_TEMP" age/age age/age-keygen
+      - name: Verify age key pair only
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_age_only
+        env:
+          AGE_IDENTITY: ${{ secrets.SUMIRE_AGE_IDENTITY }}
+          AGE_RECIPIENT: ${{ vars.SUMIRE_AGE_RECIPIENT || secrets.SUMIRE_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'rm -f "$RUNNER_TEMP/age-key-check"' EXIT
+          [[ "$AGE_RECIPIENT" =~ ^age1[0-9a-z]+$ ]] || { echo "Invalid or missing age recipient." >&2; exit 1; }
+          [[ -n "$AGE_IDENTITY" ]] || { echo "Missing age identity." >&2; exit 1; }
+          printf '%s\n' "$AGE_IDENTITY" > "$RUNNER_TEMP/age-key-check"
+          unset AGE_IDENTITY
+          derived="$("$RUNNER_TEMP/age/age-keygen" -y "$RUNNER_TEMP/age-key-check" 2>/dev/null)" || { echo "Invalid age identity." >&2; exit 1; }
+          [[ "$derived" == "$AGE_RECIPIENT" ]] || { echo "The age identity and recipient do not match." >&2; exit 1; }
+          echo "Age key pair verified."
+          echo "Age key pair verified; no sync, build, signing or R2 upload was performed." >> "$GITHUB_STEP_SUMMARY"
       - name: Decrypt and sign with the existing fork key
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
         env:
           AGE_IDENTITY: ${{ secrets.SUMIRE_AGE_IDENTITY }}
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -209,7 +230,7 @@ jobs:
           unset KEYSTORE_BASE64
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks "$RUNNER_TEMP/fork.jks" --ks-key-alias "$KEY_ALIAS" --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD --out "$RUNNER_TEMP/signed.apk" "$RUNNER_TEMP/unsigned.apk"
       - name: Validate APK identity and prepare the existing bundle format
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
         env:
           SOURCE_SHA: ${{ needs.sync.outputs.build_sha }}
           EXPECTED_VERSION_CODE: ${{ needs.sync.outputs.version_code }}
@@ -219,10 +240,10 @@ jobs:
           python3 publisher/tools/private-distribution/prepare_bundle.py --apk "$RUNNER_TEMP/signed.apk" --build-tools "$ANDROID_HOME/build-tools/36.0.0" --java "$(command -v java)" --commit "$SOURCE_SHA" --output "$RUNNER_TEMP/bundle"
           python3 -c 'import json,os; r=json.load(open(os.environ["RUNNER_TEMP"]+"/bundle/build.json")); code=int(os.environ["EXPECTED_VERSION_CODE"]); run=int(os.environ["GITHUB_RUN_NUMBER"]); attempt=(code-1000001-run*1000)//4; assert 1<=attempt<=249 and code==1000001+run*1000+attempt*4 and r["version_code"]==code and "-fork" in r["version_name"] and r["version_name"].endswith(f"-ci.{run}.{attempt}")'
       - name: Install the fixed S3 client
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
         run: npm ci --prefix publisher/tools/private-distribution --ignore-scripts --no-audit --no-fund
       - name: Verify and publish privately
-        if: needs.build.result == 'success'
+        if: needs.build.result == 'success' && vars.SUMIRE_AUTO_PUBLISH == 'true' && !inputs.verify_age_only
         id: publish
         env:
           BUNDLE_DIR: ${{ runner.temp }}/bundle
@@ -236,10 +257,10 @@ jobs:
           AWS_EC2_METADATA_DISABLED: 'true'
         run: node publisher/tools/private-distribution/auto_publish.cjs
       - name: Notify publication result
-        if: always()
+        if: always() && !(github.event_name == 'workflow_dispatch' && inputs.verify_age_only)
         env:
           GH_TOKEN: ${{ github.token }}
-          RESULT: ${{ needs.build.result == 'failure' && 'build failed' || job.status }}
+          RESULT: ${{ needs.build.result == 'failure' && 'build failed' || (vars.SUMIRE_AUTO_PUBLISH != 'true' && 'built; publication disabled' || job.status) }}
           APK_URL: ${{ steps.publish.outcome == 'success' && steps.publish.outputs.apk_url || '' }}
           SOURCE_SHA: ${{ needs.sync.outputs.build_sha }}
           VERSION_CODE: ${{ needs.sync.outputs.version_code }}
