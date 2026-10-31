@@ -1,5 +1,8 @@
 # Sumire (スミレ) — The Privacy-First Japanese Keyboard
 
+> **個人用カスタム版（非公式Fork）**: `custom` ブランチに、背景と変換操作の変更を保存しています。
+> 表示名は本家と同じです。Google Play版と共存するアプリID・署名・ビルド方法は [Forkの変更内容とビルド](docs/FORK.md) を参照してください。
+
 <p align="center">
   <img src="images/demo.gif" width="250" alt="Sumire typing demo"/>
 </p>

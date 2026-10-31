@@ -17,23 +17,36 @@ android {
         localProperties.load(new FileInputStream(localPropertiesFile))
     }
 
+    // Keep signing material outside Git. CI can use environment variables;
+    // local builds can use the already ignored local.properties file.
+    def signingValue = { String name ->
+        providers.environmentVariable(name).orNull ?: localProperties.getProperty(name)
+    }
+    def signingNames = ['KEYSTORE_FILE', 'KEYSTORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD']
+    def signingValues = signingNames.collectEntries { [(it): signingValue(it)] }
+    def hasForkSigning = signingValues.values().any { it }
+    if (hasForkSigning && !signingValues.values().every { it }) {
+        throw new GradleException('Set all four KEYSTORE_FILE, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD values.')
+    }
+
     signingConfigs {
         release {
-            if (localProperties['KEYSTORE_FILE']) {
-                storeFile file(localProperties['KEYSTORE_FILE'])
-                storePassword localProperties['KEYSTORE_PASSWORD']
-                keyAlias localProperties['KEY_ALIAS']
-                keyPassword localProperties['KEY_PASSWORD']
+            if (hasForkSigning) {
+                storeFile rootProject.file(signingValues['KEYSTORE_FILE'])
+                storePassword signingValues['KEYSTORE_PASSWORD']
+                keyAlias signingValues['KEY_ALIAS']
+                keyPassword signingValues['KEY_PASSWORD']
             }
         }
     }
 
     defaultConfig {
-        applicationId "com.kazumaproject.markdownhelperkeyboard"
+        // Preserve the identity of the customized APK already installed on devices.
+        applicationId "com.kazumaproject.markdownhelperkeyboard.dev"
         minSdk 24
         targetSdk 37
-        versionCode 832
-        versionName "1.7.139"
+        versionCode 833
+        versionName "1.7.139-fork"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -94,6 +107,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // A fresh CI runner must use the existing fork key, not generate a new one.
+            if (hasForkSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
         release {
             def releaseSigning = signingConfigs.findByName("release")
             if (releaseSigning?.storeFile) {

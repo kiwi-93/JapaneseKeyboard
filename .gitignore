@@ -29,3 +29,9 @@ app/liteStandard
 .cache/classified-distribution/
 
 tools/classified-dictionaries/__pycache__/
+
+# Private signing keys must never be committed, including keys decoded by CI.
+*.jks
+*.keystore
+*.p12
+*.pfx
