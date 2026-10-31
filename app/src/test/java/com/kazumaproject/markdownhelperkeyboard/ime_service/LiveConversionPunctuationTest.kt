@@ -91,6 +91,29 @@ class LiveConversionPunctuationTest {
         assertEquals(-1, BaseInputConnection.getComposingSpanStart(editor.editable))
     }
 
+    private fun assertMarkCommitsConversionAndStartsFreshComposition(mark: String) {
+        candidate()
+        assertTrue(type(mark))
+        assertEquals("今日$mark", editor.editable.toString())
+        assertEquals("", input.value)
+        assertEquals(-1, BaseInputConnection.getComposingSpanStart(editor.editable))
+        service.setComposingText("つぎ", 1)
+        assertEquals("今日${mark}つぎ", editor.editable.toString())
+        assertEquals(2 + mark.length, BaseInputConnection.getComposingSpanStart(editor.editable))
+    }
+
+    @Test fun fullWidthExclamationCommitsConversion() {
+        assertMarkCommitsConversionAndStartsFreshComposition("！")
+    }
+
+    @Test fun fullWidthQuestionCommitsConversion() {
+        assertMarkCommitsConversionAndStartsFreshComposition("？")
+    }
+
+    @Test fun ellipsisCommitsConversion() {
+        assertMarkCommitsConversionAndStartsFreshComposition("…")
+    }
+
     @Test fun previewDoesNotCommitRawReadingOrDuplicatePunctuation() {
         candidate()
         arbiter.showPreview("きょう、", 1)
@@ -134,9 +157,11 @@ class LiveConversionPunctuationTest {
         assertEquals("今日", editor.editable.toString())
     }
 
-    @Test fun onlySingleJapanesePunctuationTriggersBoundary() {
+    @Test fun unconfiguredMarksAndMultipleCharactersKeepExistingPipeline() {
         candidate()
-        listOf(",", ".", "！", "、。", "あ").forEach { assertFalse(type(it)) }
+        listOf(",", ".", "!", "?", "...", "‥", "、。", "！？", "……", "あ").forEach {
+            assertFalse(type(it))
+        }
         assertEquals("今日", editor.editable.toString())
     }
 

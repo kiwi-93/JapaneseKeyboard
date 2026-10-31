@@ -45,8 +45,8 @@ android {
         applicationId "dev.ctrlcv.markdownhelperkeyboard"
         minSdk 24
         targetSdk 37
-        versionCode 833
-        versionName "1.7.139-fork"
+        versionCode 834
+        versionName "1.7.139-fork.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

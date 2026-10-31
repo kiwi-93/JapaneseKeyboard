@@ -26785,7 +26785,10 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
 
     /** Resolve the live candidate before the shared text handlers append punctuation to its reading. */
     private fun commitLiveConversionBeforePunctuation(text: String): Boolean {
-        if (text != "、" && text != "。") return false
+        when (text) {
+            "、", "。", "！", "？", "…" -> Unit
+            else -> return false
+        }
         if (isLiveConversionEnable != true || currentInputModeForSession != InputMode.ModeJapanese ||
             isHenkan.get() || hasConvertedKatakana ||
             (qwertyMode.value == TenKeyQWERTYMode.Custom && isCustomLayoutDirectMode)
