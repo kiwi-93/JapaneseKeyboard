@@ -63,4 +63,5 @@ jobs:
       - name: Verify the uploaded files and update the private latest pointer
         env:
           NODE_PATH: ${{ runner.temp }}/r2-tools/node_modules
+          GITHUB_TOKEN: ${{ github.token }}
         run: node tools/private-distribution/r2_runner.cjs verify

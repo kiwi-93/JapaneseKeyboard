@@ -69,3 +69,15 @@ test('an unprotected download path is rejected and the existing Access redirect 
     await assert.rejects(p.assertProtected('example.apk'));
   } finally { global.fetch = original; }
 });
+
+
+test('latest pointer rejects rollback, conflicting versions and unrelated commits', () => {
+  const next = request().record;
+  const old = { record: { ...next, version_code: 834, source_commit: 'f'.repeat(40) }, etag: '"old"' };
+  assert.deepEqual(p.latestCondition(null, next), { IfNoneMatch: '*' });
+  assert.deepEqual(p.latestCondition(old, next, 'ahead'), { IfMatch: '"old"' });
+  assert.throws(() => p.latestCondition(old, next, 'diverged'));
+  assert.throws(() => p.latestCondition({ ...old, record: { ...old.record, version_code: 836 } }, next, 'ahead'));
+  assert.throws(() => p.latestCondition({ ...old, record: { ...old.record, version_code: 835, apk_sha256: 'c'.repeat(64) } }, next, 'ahead'));
+  assert.throws(() => p.latestCondition({ ...old, etag: undefined }, next, 'ahead'));
+});

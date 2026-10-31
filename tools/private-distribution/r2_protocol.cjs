@@ -89,6 +89,31 @@ function validateGrant(grant, request, id) {
   return grant;
 }
 
+function latestCondition(previous, next, relation) {
+  if (!previous) return { IfNoneMatch: '*' };
+  const record = previous.record;
+  assert(typeof previous.etag === 'string' && previous.etag.length > 0, 'Missing latest ETag.');
+  assert(Number.isSafeInteger(record.version_code) && record.version_code > 0 &&
+    /^[a-f0-9]{40}$/.test(record.source_commit || '') && /^[a-f0-9]{64}$/.test(record.apk_sha256 || ''),
+    'Existing latest metadata is invalid.');
+  assert(record.version_code <= next.version_code, 'An older APK cannot replace the latest version pointer.');
+  assert(record.version_code !== next.version_code || record.apk_sha256 === next.apk_sha256,
+    'The same version code cannot identify a different APK.');
+  assert(record.source_commit === next.source_commit || relation === 'ahead',
+    'The new source commit must descend from the last published commit.');
+  return { IfMatch: previous.etag };
+}
+
+async function commitRelation(base, head) {
+  if (base === head) return 'identical';
+  assert(process.env.GITHUB_TOKEN, 'A read-only GitHub token is required for ancestry verification.');
+  const response = await fetch(`https://api.github.com/repos/kiwi-93/JapaneseKeyboard/compare/${base}...${head}`,
+    { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json',
+      'User-Agent': 'sumire-private-distribution' }, signal: AbortSignal.timeout(20000) });
+  assert(response.ok, 'Could not verify published commit ancestry.');
+  return (await response.json()).status;
+}
+
 async function assertProtected(objectKey) {
   const response = await fetch(`${BASE_URL}/${objectKey}`, { redirect: 'manual', signal: AbortSignal.timeout(20000) });
   await response.body?.cancel();
@@ -99,4 +124,4 @@ async function assertProtected(objectKey) {
 }
 
 module.exports = { APP_ID, CERTIFICATE, BUCKET, BASE_URL, TYPES, assert, validateRequest,
-  prefixFor, fileDigest, readBundle, seal, unseal, validateGrant, assertProtected };
+  prefixFor, fileDigest, readBundle, seal, unseal, validateGrant, assertProtected, latestCondition, commitRelation };

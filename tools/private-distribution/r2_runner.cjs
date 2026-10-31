@@ -17,7 +17,7 @@ async function main() {
   const prefix = p.prefixFor(request, id);
   const s3 = new S3Client({ region: 'auto', endpoint: `https://${process.env.CF_ACCOUNT_ID}.r2.cloudflarestorage.com`,
     forcePathStyle: true, requestChecksumCalculation: 'WHEN_REQUIRED', responseChecksumValidation: 'WHEN_REQUIRED' });
-  await p.assertProtected(`${prefix}/sumire.apk`);
+  for (const name of Object.keys(p.TYPES)) await p.assertProtected(`${prefix}/${name}`);
   await p.assertProtected('latest.json');
   if (process.argv[2] === 'grant') {
     // Validate the existing bucket and supplied object credentials without logging object names.
@@ -61,21 +61,22 @@ async function main() {
     p.assert(hash.digest('hex') === file.sha256, `The uploaded ${file.name} checksum does not match.`);
     console.log(`Verified ${file.name}.`);
   }
+  let previous;
   try {
-    const previous = await s3.send(new GetObjectCommand({ Bucket: p.BUCKET, Key: 'latest.json' }));
-    const record = JSON.parse(await previous.Body.transformToString());
-    p.assert(!Number.isSafeInteger(record.version_code) || record.version_code <= request.record.version_code,
-      'An older APK cannot replace the latest version pointer.');
+    const object = await s3.send(new GetObjectCommand({ Bucket: p.BUCKET, Key: 'latest.json' }));
+    previous = { record: JSON.parse(await object.Body.transformToString()), etag: object.ETag };
   } catch (error) { if (error.$metadata?.httpStatusCode !== 404) throw error; }
-  await p.assertProtected(`${prefix}/sumire.apk`);
+  const relation = previous ? await p.commitRelation(previous.record.source_commit, request.record.source_commit) : null;
+  const condition = p.latestCondition(previous, request.record, relation);
+  for (const name of Object.keys(p.TYPES)) await p.assertProtected(`${prefix}/${name}`);
   await p.assertProtected('latest.json');
   const latest = { ...request.record, apk_url: `${p.BASE_URL}/${prefix}/sumire.apk`,
     checksum_url: `${p.BASE_URL}/${prefix}/sumire.apk.sha256`, build_info_url: `${p.BASE_URL}/${prefix}/build.json`,
     uploaded_at: new Date().toISOString(), workflow_url: `https://github.com/kiwi-93/JapaneseKeyboard/actions/runs/${process.env.GITHUB_RUN_ID}` };
-  await s3.send(new PutObjectCommand({ Bucket: p.BUCKET, Key: 'latest.json',
-    Body: JSON.stringify(latest, null, 2) + '\n', ContentType: 'application/json', CacheControl: 'private, no-store' }));
   await fs.promises.appendFile(process.env.GITHUB_STEP_SUMMARY,
-    `## Existing APK published privately\n\nVersion: ${request.record.version_code}\n\n[Download APK](${latest.apk_url})\n\nSHA-256: \`${request.record.apk_sha256}\`\n\nNo APK build or GitHub Release was performed.\n`);
+    `## Existing APK private publication\n\nVersion: ${request.record.version_code}\n\n[Download APK](${latest.apk_url})\n\nSHA-256: \`${request.record.apk_sha256}\`\n\nPublication is complete only if this workflow succeeds. No APK build or GitHub Release was performed.\n`);
+  await s3.send(new PutObjectCommand({ Bucket: p.BUCKET, Key: 'latest.json',
+    ...condition, Body: JSON.stringify(latest, null, 2) + '\n', ContentType: 'application/json', CacheControl: 'private, no-store' }));
   console.log(`Private APK URL: ${latest.apk_url}`);
 }
 
