@@ -14,6 +14,14 @@ import org.junit.Test
 
 class PhysicalKeyboardShortcutRepositoryTest {
     @Test
+    fun defaultPlainBunsetsuArrowsResizeTheFocusedSegment() {
+        val arrows = PhysicalKeyboardShortcutRepository.defaultShortcuts.filter {
+            it.context == "bunsetsu_conversion" && !it.shift && !it.ctrl && !it.alt && !it.meta &&
+                it.keyCode in listOf(KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT)
+        }
+        assertEquals(listOf("segment_width_shrink", "segment_width_expand"), arrows.map { it.actionId })
+    }
+    @Test
     fun defaultShortcuts_containsAltApostropheFallback() {
         val fallback = PhysicalKeyboardShortcutRepository.defaultShortcuts.singleOrNull {
             it.context == "any" &&
