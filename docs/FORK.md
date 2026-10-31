@@ -17,17 +17,19 @@
 
 | 項目 | 値 |
 | --- | --- |
-| フル版・標準配布のアプリID | `com.kazumaproject.markdownhelperkeyboard.dev` |
+| フル版・標準配布のアプリID | `dev.ctrlcv.markdownhelperkeyboard` |
 | ソースのnamespace | `com.kazumaproject.markdownhelperkeyboard`（本家と同じ） |
 | 表示名 | `スミレ 日本語キーボード` / `Sumire Japanese Keyboard`（本家と同じ） |
 | バージョン | `1.7.139-fork` / versionCode `833` |
 | 署名証明書のSHA-256 | `2179af3733bbfbe959a5d53196210880c6fb4a666bef5b3113e0f6cee1cf1c4e` |
 
-旧カスタム版（versionCode 832）と同じアプリID・署名鍵です。Google Play版とは別のアプリとして共存し、旧カスタム版には更新としてインストールできます。Lite/F-Droid版は上流と同じ仕組みで、それぞれ `.lite` / `.fdroid` が追加されます。
+このFork独自のアプリIDです。Google Play版、および旧カスタム版 `com.kazumaproject.markdownhelperkeyboard.dev` とは別のアプリとして共存します。署名鍵は旧カスタム版と同じですが、アプリIDが異なるため旧カスタム版への上書き更新にはなりません。設定・カスタム配列・辞書は旧版からエクスポートし、新版へインポートしてください。
+
+Lite/F-Droid版は上流と同じ仕組みで、それぞれ `.lite` / `.fdroid` が追加されます。`com.kiwi-93...` はハイフンを含むためAndroidのアプリIDには使用できません。[AndroidのアプリID規則](https://developer.android.com/build/configure-app-module)を参照してください。
 
 ## 署名鍵の扱い
 
-既存APKの署名に使用した鍵を継続使用します。開発中に作成されたAndroid Debug証明書ですが、別の鍵に交換すると既存インストールへ上書き更新できなくなるため、ここでは変更しません。
+既存APKの署名に使用した鍵を継続使用します。開発中に作成されたAndroid Debug証明書です。今後このForkのアプリIDでインストールした版へ更新できるよう、署名鍵を固定します。
 
 秘密鍵・パスワード・Base64にした鍵はコミットしません。署名情報は環境変数、またはGitの管理対象外の `local.properties` から読み込みます。環境変数を優先し、指定する場合は次の4項目すべてを設定します。
 
