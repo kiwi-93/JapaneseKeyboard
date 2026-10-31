@@ -7,7 +7,7 @@
 
 [KazumaProject/JapaneseKeyboard](https://github.com/KazumaProject/JapaneseKeyboard) を元に、キーボードの背景と日本語変換時の操作を調整した個人用Forkです。変更は `custom` ブランチにまとめています。
 
-比較の基準は、実機で動作確認した本家のコミット [`58b6bd9`](https://github.com/KazumaProject/JapaneseKeyboard/commit/58b6bd9b418a11606990caa8c6b746d0bc617d17) です。それ以後の本家の更新は、まだ取り込んでいません。
+比較の基準は、最初に実機で動作確認した本家のコミット [`58b6bd9`](https://github.com/KazumaProject/JapaneseKeyboard/commit/58b6bd9b418a11606990caa8c6b746d0bc617d17) です。2026-10-31に、本家 `dev` の [`6e929009`](https://github.com/KazumaProject/JapaneseKeyboard/commit/6e929009dcb33a271dbf610163d442ad38c5696a) までの更新を取り込みました。本家のActions設定はFork側の方針を維持しています。
 
 | 項目 | 本家の基点バージョン | このFork |
 | --- | --- | --- |
@@ -25,7 +25,7 @@
 
 独自のアプリIDを使用するため、Google Play版や旧カスタム版（`com.kazumaproject.markdownhelperkeyboard.dev`）と共存できます。設定・配列・辞書は別管理です。旧版から必要なデータをエクスポートし、このForkへインポートしてください。旧版への上書き更新にはなりません。
 
-このForkは独自の署名鍵を継続使用します。ビルド方法・署名設定・検証結果は [docs/FORK.md](docs/FORK.md) にまとめています。関連する自動テストは64件成功し、フル版Debug APKのビルドと署名を確認しています。
+このForkは独自の署名鍵を継続使用します。ビルド方法・署名設定・検証結果は [docs/FORK.md](docs/FORK.md) にまとめています。本家更新の取り込み時に関連する自動テスト183件が成功し、フル版Debug APKのビルドと署名を確認しています。
 
 ### 本家更新の自動取り込み
 

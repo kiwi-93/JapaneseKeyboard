@@ -98,6 +98,47 @@ class BunsetsuEnterCommitTest {
         ClassParameter.from(MainLayoutBinding::class.java, binding),
         ClassParameter.from(String::class.java, input.value),
         ClassParameter.from(Boolean::class.javaPrimitiveType, false))
+
+    private fun verticalSession() {
+        session()
+        val type = IMEService::class.java.declaredClasses.single { it.simpleName == "VerticalSegmentSession" }
+        val constructor = type.declaredConstructors.single { it.parameterCount == 8 }.apply { isAccessible = true }
+        ReflectionHelpers.setField(service, "verticalSegmentSession",
+            constructor.newInstance(input.value, parts, null, null, 0, true, false, 1L))
+    }
+
+    private fun assertVerticalSessionCommitted() {
+        assertEquals("私は東京に行きます", editor.editable.toString())
+        assertEquals("", input.value)
+        assertEquals(-1, BaseInputConnection.getComposingSpanStart(editor.editable))
+        assertNull(ReflectionHelpers.getField(service, "verticalSegmentSession"))
+        assertNull(ReflectionHelpers.getField(service, "bunsetsuConversionSession"))
+        assertEquals(0, editor.editorActions)
+    }
+
+    @Test fun verticalScreenEnterKeepsUpstreamCommitBehavior() {
+        verticalSession()
+        enter()
+        assertVerticalSessionCommitted()
+    }
+
+    @Test fun verticalFloatingScreenEnterKeepsUpstreamCommitBehavior() {
+        verticalSession()
+        ReflectionHelpers.callInstanceMethod<Unit>(service, "handleNonEmptyInputEnterKeyFloating",
+            ClassParameter.from(List::class.java, emptyList<Candidate>()),
+            ClassParameter.from(FloatingKeyboardLayoutBinding::class.java, mock(FloatingKeyboardLayoutBinding::class.java)),
+            ClassParameter.from(String::class.java, input.value))
+        assertVerticalSessionCommitted()
+    }
+
+    @Test fun verticalPhysicalEnterKeepsUpstreamCommitBehavior() {
+        verticalSession()
+        assertTrue(ReflectionHelpers.callInstanceMethod<Boolean>(service, "handleJapaneseEnterFloating",
+            ClassParameter.from(MainLayoutBinding::class.java, binding),
+            ClassParameter.from(String::class.java, input.value),
+            ClassParameter.from(List::class.java, emptyList<Any>())))
+        assertVerticalSessionCommitted()
+    }
     private suspend fun converter(): KanaKanjiConversionSession {
         service.userDictionaryRepository = org.mockito.kotlin.mock()
         service.userTemplateRepository = org.mockito.kotlin.mock()
