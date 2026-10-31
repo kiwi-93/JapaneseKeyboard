@@ -3,7 +3,8 @@
 ## 役割
 
 - GitHub Actions: 本家 `KazumaProject/JapaneseKeyboard` の `dev` から、競合しない更新をこのForkの `custom` へ自動マージする。
-- ビルド・テスト・APKの配布: ローカル環境で行う。今後M720qに環境を構築する方針で、まだ構築していない。
+- ビルド・テスト: 現在のローカル環境・手順を継続する。
+- APKの配布: Cloudflare R2とAccessを使い、GitHubログインで本人だけがダウンロードできる形にする。[配布手順](PRIVATE_DISTRIBUTION.md)を参照。
 
 スケジュールは毎日07:17（日本時間、UTCでは前日の22:17）。GitHubの混雑で実行が遅れることがあります。Actionsの **Sync upstream source → Run workflow** から手動実行もできます。
 

@@ -37,3 +37,4 @@ tools/classified-dictionaries/__pycache__/
 *.p12
 *.pfx
 tools/fork-sync/__pycache__/
+tools/private-distribution/__pycache__/

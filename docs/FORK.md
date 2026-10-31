@@ -55,7 +55,7 @@ KEY_PASSWORD=<key password>
 
 Secretsはバックアップとしてダウンロードできません。元の鍵ファイルを安全な場所にも保管してください。詳細は [GitHubのSecrets設定](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets) と [Androidの署名鍵管理](https://developer.android.com/studio/publish/app-signing) を参照してください。
 
-本家の更新取り込みとGitHub標準のメール通知は [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md) を参照してください。GitHub Actionsでのビルド・配布は行わず、今後M720qでのローカルビルド・配布を用意する方針です。
+本家の更新取り込みとGitHub標準のメール通知は [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md) を参照してください。ビルド方法は現在のまま継続し、配布先はCloudflare R2とAccessによる本人専用の `apk.ctrlcv.dev` とする方針です。[配布手順](PRIVATE_DISTRIBUTION.md)に準備・検証方法を記載しています。
 
 ## ビルドと確認
 

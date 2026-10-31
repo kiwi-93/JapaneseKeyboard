@@ -33,7 +33,11 @@ GitHub Actionsは毎日07:17（日本時間）に本家の `dev` を確認し、
 
 取り込み成功・競合・実行失敗は、このForkの「本家更新の通知」Issueに記録します。GitHub標準のメール通知を利用します。設定方法は [更新取り込みと通知](docs/UPSTREAM_SYNC.md) を参照してください。
 
-ActionsではAPKのビルド・テスト・配布を行いません。本家のActions設定の変更も自動では取り込みません。取り込んだソースの動作確認はローカルで行います。ビルド環境は今後M720qに用意し、APKをローカルで配布する方針です。
+ActionsではAPKのビルド・テスト・配布を行いません。本家のActions設定の変更も自動では取り込みません。取り込んだソースの動作確認とビルドは、現在のローカル環境・手順を継続します。
+
+### 個人用APKの配布
+
+配布先はCloudflare R2の `apk.ctrlcv.dev` とし、既存のCloudflare AccessのGitHubログイン連携で本人だけに制限する方針です。既存APKの署名とハッシュを検証して配置する手順を [個人用APKのR2配布](docs/PRIVATE_DISTRIBUTION.md) にまとめています。初回のCloudflare API認証と環境設定が必要です。GitHub Releasesへの一般公開や、ビルド方法の変更は行いません。
 
 ---
 
