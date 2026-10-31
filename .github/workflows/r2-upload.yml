@@ -40,16 +40,15 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ github.sha }}
+          # Use the reviewed publisher, not scripts from merged upstream source.
+          ref: e139131a13be542038adfcb4c69fde64ee9a2934
           persist-credentials: false
           submodules: false
 
       - name: Install the S3 upload tools only
-        run: npm install --prefix "$RUNNER_TEMP/r2-tools" --no-save --ignore-scripts @aws-sdk/client-s3@3.1161.0 @aws-sdk/s3-request-presigner@3.1161.0
+        run: npm ci --prefix tools/private-distribution --ignore-scripts --no-audit --no-fund
 
       - name: Prepare an encrypted temporary upload grant
-        env:
-          NODE_PATH: ${{ runner.temp }}/r2-tools/node_modules
         run: node tools/private-distribution/r2_runner.cjs grant
 
       - name: Publish the encrypted grant
@@ -62,6 +61,5 @@ jobs:
 
       - name: Verify the uploaded files and update the private latest pointer
         env:
-          NODE_PATH: ${{ runner.temp }}/r2-tools/node_modules
           GITHUB_TOKEN: ${{ github.token }}
         run: node tools/private-distribution/r2_runner.cjs verify

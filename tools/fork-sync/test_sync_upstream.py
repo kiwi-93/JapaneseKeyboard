@@ -102,6 +102,17 @@ class MergeSourceTest(unittest.TestCase):
 
 
 class NotificationTest(unittest.TestCase):
+    def test_actions_outputs_are_validated_and_written(self):
+        with tempfile.TemporaryDirectory(prefix="sumire-sync-output-") as directory:
+            output = Path(directory) / "output"
+            with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output)}):
+                sync.write_outputs("merged", "a" * 40, "b" * 40)
+                self.assertEqual(f"status=merged\nmerged_sha={'a' * 40}\nupstream_sha={'b' * 40}\n", output.read_text(encoding="utf-8"))
+                with self.assertRaises(ValueError):
+                    sync.write_outputs("merged\nunsafe=1", "a" * 40, "b" * 40)
+                with self.assertRaises(ValueError):
+                    sync.write_outputs("merged", "bad", "b" * 40)
+
     def test_manual_upload_is_kept_enabled_and_android_build_is_disabled(self):
         workflows = {"workflows": [
             {"id": 1, "path": ".github/workflows/sync-upstream.yml", "state": "active"},

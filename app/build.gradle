@@ -45,8 +45,17 @@ android {
         applicationId "dev.ctrlcv.markdownhelperkeyboard"
         minSdk 24
         targetSdk 37
-        versionCode 835
-        versionName "1.7.139-fork.2"
+        def ciCode = providers.gradleProperty("sumireVersionCode").orNull
+        def ciSuffix = providers.gradleProperty("sumireVersionSuffix").orNull
+        if ((ciCode == null) != (ciSuffix == null)) {
+            throw new GradleException("Both CI version properties must be supplied together.")
+        }
+        if (ciCode != null && (!(ciCode ==~ /[1-9][0-9]{0,9}/) || ciCode.toLong() > 2099999998L ||
+                !(ciSuffix ==~ /ci\.[0-9]+\.[0-9]+/))) {
+            throw new GradleException("Invalid CI version properties.")
+        }
+        versionCode ciCode == null ? 835 : ciCode.toInteger()
+        versionName "1.7.139-fork.2" + (ciSuffix == null ? "" : "-${ciSuffix}")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -185,7 +194,7 @@ android {
             }
 
             // Override name specifically for releaseUnsigned
-            if (variant.buildType.name == "releaseUnsigned") {
+            if (variant.buildType.name == "releaseUnsigned" && !shouldSplitApks) {
                 output.outputFileName = "app-${flavorPrefix}release-unsigned.apk"
             }
         }

@@ -2559,10 +2559,16 @@ class SuggestionAdapter internal constructor(
             ContextCompat.getDrawable(holder.itemView.context, iconResId)?.mutate()
         })
         holder.itemView.contentDescription = item.toggle.contentDescription
-        candidateTextColor?.let { color ->
-            holder.badgeText.setTextColor(color)
-            holder.badgeIcon.imageTintList = android.content.res.ColorStateList.valueOf(color)
-        }
+        // Recycled holders may retain the previous skin's colors. Restore the
+        // original resource colors explicitly when the custom tint is removed.
+        holder.badgeText.setTextColor(candidateTextColor ?: ContextCompat.getColor(
+            holder.itemView.context, com.kazumaproject.core.R.color.main_text_color
+        ))
+        holder.badgeIcon.imageTintList = candidateTextColor?.let {
+            android.content.res.ColorStateList.valueOf(it)
+        } ?: ContextCompat.getColorStateList(
+            holder.itemView.context, com.kazumaproject.core.R.color.keyboard_icon_color
+        )
         holder.itemView.isPressed = false
         holder.itemView.setOnClickListener {
             onInlineSuggestionToggleClickListener?.invoke()

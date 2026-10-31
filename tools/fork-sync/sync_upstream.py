@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -11,6 +12,18 @@ REPOSITORY = "kiwi-93/JapaneseKeyboard"
 UPSTREAM = "https://github.com/KazumaProject/JapaneseKeyboard.git"
 UPSTREAM_REF = "refs/remotes/sumire-upstream/dev"
 NOTICE_MARKER = "<!-- sumire-upstream-sync-notifications -->"
+
+
+def write_outputs(status, merged_sha, upstream_sha):
+    """Publish only validated single-line values to the Actions output file."""
+    if status not in {"merged", "unchanged", "conflict"}:
+        raise ValueError("Invalid sync status")
+    if not all(re.fullmatch(r"[0-9a-f]{40}", sha) for sha in (merged_sha, upstream_sha)):
+        raise ValueError("Invalid commit SHA")
+    output_file = os.environ.get("GITHUB_OUTPUT")
+    if output_file:
+        with open(output_file, "a", encoding="utf-8", newline="\n") as output:
+            output.write(f"status={status}\nmerged_sha={merged_sha}\nupstream_sha={upstream_sha}\n")
 
 
 def command(*args, cwd=None, check=True, stdin=None):
@@ -109,7 +122,7 @@ def notify(status, upstream_sha, details):
              "failed": "本家更新の確認・取り込みに失敗しました"}[status]
     run = f"https://github.com/{REPOSITORY}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}"
     body = f"{marker}\n### {title}\n\n@kiwi-93\n\n{details.replace('@', '＠')}\n\n実行ログ: {run}\n\n"
-    body += "APKのビルド・テスト・公開は実行していません。\n"
+    body += "ビルドと配布の結果は、実行された場合に別途通知します。\n"
     if issue:
         api(f"repos/{REPOSITORY}/issues/{issue['number']}/comments", "POST", {"body": body})
     else:
@@ -138,6 +151,7 @@ def main():
         upstream_sha = git(repo, "rev-parse", UPSTREAM_REF).stdout.strip()
         status, before, after, conflicts = merge_source(repo, UPSTREAM_REF)
         if status == "unchanged":
+            write_outputs(status, after, upstream_sha)
             print("No upstream updates. No notification sent.")
             return 0
         if status == "conflict":
@@ -149,6 +163,7 @@ def main():
                 git(repo, "push", "origin", "HEAD:refs/heads/custom")
             details = (f"本家 dev: `{upstream_sha}`\n\n取り込み後: `{after}`\n\n"
                        f"変更一覧: https://github.com/{REPOSITORY}/compare/{before}...{after}")
+        write_outputs(status, after, upstream_sha)
         print(status + "\n" + details)
         if not args.check_only:
             notify(status, upstream_sha, details)

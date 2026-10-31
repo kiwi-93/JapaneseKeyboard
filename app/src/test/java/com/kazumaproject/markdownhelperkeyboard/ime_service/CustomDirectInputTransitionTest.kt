@@ -13,6 +13,7 @@ import com.kazumaproject.markdownhelperkeyboard.ime_service.flick_preview.Compos
 import com.kazumaproject.markdownhelperkeyboard.ime_service.input_behavior.ResolvedInputBehavior
 import com.kazumaproject.markdownhelperkeyboard.ime_service.state.InputTypeForIME
 import com.kazumaproject.markdownhelperkeyboard.setting_activity.AppPreference
+import com.kazumaproject.markdownhelperkeyboard.zenz.runtime.ZenzRuntimeClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -44,11 +45,20 @@ class CustomDirectInputTransitionTest {
     }
 
     private val editor = Editor()
-    private val service = spy(IMEService().apply { appPreference = AppPreference }).also {
+    private val service = spy(IMEService().apply {
+        appPreference = AppPreference
+        zenzRuntimeClient = mock(ZenzRuntimeClient::class.java)
+        ReflectionHelpers.setField(this, "runtimeInputSharedPreferences",
+            ApplicationProvider.getApplicationContext<Context>()
+                .getSharedPreferences("custom-direct-test", Context.MODE_PRIVATE))
+    }).also {
         val context = ApplicationProvider.getApplicationContext<Context>()
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit()
         AppPreference.init(context)
         it.appPreference = AppPreference
+        it.zenzRuntimeClient = mock(ZenzRuntimeClient::class.java)
+        ReflectionHelpers.setField(it, "runtimeInputSharedPreferences",
+            context.getSharedPreferences("custom-direct-test", Context.MODE_PRIVATE))
         doReturn(editor).`when`(it).getCurrentInputConnection()
         ReflectionHelpers.callInstanceMethod<Unit>(it, "attachBaseContext",
             ClassParameter.from(Context::class.java, context))

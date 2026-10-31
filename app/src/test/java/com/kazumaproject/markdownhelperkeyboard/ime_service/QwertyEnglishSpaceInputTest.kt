@@ -10,6 +10,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.kazumaproject.core.domain.state.InputMode
 import com.kazumaproject.markdownhelperkeyboard.converter.candidate.Candidate
 import com.kazumaproject.markdownhelperkeyboard.setting_activity.AppPreference
+import com.kazumaproject.markdownhelperkeyboard.zenz.runtime.ZenzRuntimeClient
 import com.kazumaproject.markdownhelperkeyboard.databinding.MainLayoutBinding
 import com.kazumaproject.markdownhelperkeyboard.ime_service.adapters.FloatingCandidateListAdapter
 import com.kazumaproject.markdownhelperkeyboard.ime_service.input_behavior.ResolvedInputBehavior
@@ -53,6 +54,7 @@ class QwertyEnglishSpaceInputTest {
         AppPreference.init(ApplicationProvider.getApplicationContext())
         val service = spy(IMEService())
         service.appPreference = AppPreference
+        service.zenzRuntimeClient = mock(ZenzRuntimeClient::class.java)
         ReflectionHelpers.setField(service, "listAdapter", mock(FloatingCandidateListAdapter::class.java))
         doReturn(editor).`when`(service).getCurrentInputConnection()
         ReflectionHelpers.setField(service, "currentInputModeForSession", InputMode.ModeEnglish)

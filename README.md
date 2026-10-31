@@ -15,6 +15,7 @@
 | ライブ変換中の「、」「。」「！」「？」「…」 | 記号を入力しても変換中の入力が続く | 表示中のライブ変換結果と入力した記号を確定する |
 | 通常の文節変換中のEnter | 変換中の文節をまとめて確定する | 現在の文節までを確定し、残りの文節の変換を続ける |
 | 通常の文節変換中の左右キー | 対象の文節を移動する | 対象文節の読みの長さを1文字ずつ縮小・拡大する。画面上のキーと物理キーボードに対応 |
+| スキン切り替え後の候補切替アイコン | 前のスキンの色が残る場合がある | 通常表示に戻したときにアイコンとバッジの標準色を復元する |
 | フル版・標準配布のアプリID | `com.kazumaproject.markdownhelperkeyboard` | `dev.ctrlcv.markdownhelperkeyboard` |
 
 背景の変更は、通常表示でキーボードの幅や余白を調整して使う場合に適用します。アプリの設定で有効にする実際のフローティングモードは変更していません。追加の背景設定は不要です。
@@ -33,11 +34,11 @@ GitHub Actionsは毎日07:17（日本時間）に本家の `dev` を確認し、
 
 取り込み成功・競合・実行失敗は、このForkの「本家更新の通知」Issueに記録します。GitHub標準のメール通知を利用します。設定方法は [更新取り込みと通知](docs/UPSTREAM_SYNC.md) を参照してください。
 
-更新取り込み用ActionsではAPKのビルド・テスト・配布を行いません。本家のActions設定の変更も自動では取り込みません。取り込んだソースの動作確認とビルドは、現在のローカル環境・手順を継続します。
+更新を取り込んだ場合は、同じActionsで回帰テスト、Full Standard ARM64 APKのビルド・署名・R2配布を実行します。更新なし・競合・同期失敗では自動ビルドしません。本家のActions設定の変更は取り込みません。
 
 ### 個人用APKの配布
 
-配布先はCloudflare R2の `apk-private-store` / `apk.ctrlcv.dev` とし、既存のCloudflare AccessのGitHubログインを利用します。現在のビルド方法を継続し、既存APKのアップロードとR2側の検証だけを専用の手動Actionsで行います。[個人用APKのR2配布](docs/PRIVATE_DISTRIBUTION.md)に手順をまとめています。GitHub Releasesへの一般公開や、ビルド方法の変更は行いません。
+配布先はCloudflare R2の `apk-private-store` / `apk.ctrlcv.dev` とし、既存のCloudflare AccessのGitHubログインを利用します。自動ビルド後の配布に加え、ローカルで作成した既存APKの手動アップロードも利用できます。[個人用APKのR2配布](docs/PRIVATE_DISTRIBUTION.md)に手順をまとめています。GitHub Releasesには公開しません。
 
 ---
 
