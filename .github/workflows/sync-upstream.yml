@@ -1,0 +1,41 @@
+name: Sync upstream source
+
+on:
+  schedule:
+    # Every day at 07:17 JST (22:17 UTC on the previous day).
+    - cron: '17 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: sync-upstream-custom
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'kiwi-93/JapaneseKeyboard'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the custom branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: custom
+          fetch-depth: 0
+          filter: blob:none
+          submodules: false
+
+      - name: Keep a copy of the current sync tool
+        run: |
+          mkdir -p "$RUNNER_TEMP/sumire-sync"
+          cp tools/fork-sync/sync_upstream.py "$RUNNER_TEMP/sumire-sync/"
+
+      - name: Merge source updates and notify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONUNBUFFERED: '1'
+        run: python3 "$RUNNER_TEMP/sumire-sync/sync_upstream.py"

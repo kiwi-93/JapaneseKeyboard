@@ -44,7 +44,7 @@ KEY_PASSWORD=<key password>
 
 この指定がある場合、DebugとReleaseの両方に同じ鍵を使用します。指定がないローカルDebugビルドはAndroid標準のdebug.keystoreを使用するため、新しいPCで生成された鍵では既存版に更新できません。既存版へ更新するAPKは、上記のSHA-256と一致することを必ず確認してください。
 
-GitHub Actions用には、このForkの非公開Repository Secretsに以下を保存します。既存の `.github/workflows/android.yml` が参照する名前と同じです。Secretsの登録だけではビルドは実行されません。
+このForkの非公開Repository Secretsには以下を保存しています。現在のActionsは更新取り込み専用なので、これらの署名用Secretsは使用しません。ローカルビルドには、別途保管してある鍵ファイルを使用します。
 
 | Secret | 内容 |
 | --- | --- |
@@ -54,6 +54,8 @@ GitHub Actions用には、このForkの非公開Repository Secretsに以下を�
 | `KEY_PASSWORD` | 鍵のパスワード |
 
 Secretsはバックアップとしてダウンロードできません。元の鍵ファイルを安全な場所にも保管してください。詳細は [GitHubのSecrets設定](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets) と [Androidの署名鍵管理](https://developer.android.com/studio/publish/app-signing) を参照してください。
+
+本家の更新取り込みとGitHub標準のメール通知は [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md) を参照してください。GitHub Actionsでのビルド・配布は行わず、今後M720qでのローカルビルド・配布を用意する方針です。
 
 ## ビルドと確認
 

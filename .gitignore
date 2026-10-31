@@ -35,3 +35,4 @@ tools/classified-dictionaries/__pycache__/
 *.keystore
 *.p12
 *.pfx
+tools/fork-sync/__pycache__/
