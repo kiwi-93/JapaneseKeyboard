@@ -1,6 +1,28 @@
 name: Sync upstream source
 
 on:
+  push:
+    branches: [custom]
+    paths:
+      - 'app/**'
+      - 'core/**'
+      - 'custom_keyboard/**'
+      - 'tenkey/**'
+      - 'qwerty_keyboard/**'
+      - 'gojuon_keyboard/**'
+      - 'symbol_keyboard/**'
+      - 'morse_keyboard/**'
+      - 'flexbox/**'
+      - 'zenz/**'
+      - 'gradle/**'
+      - '*.gradle'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradlew*'
+      - '.gitmodules'
+      - 'tools/**/*.py'
+      - 'tools/**/*.cjs'
+      - 'tools/**/*.sh'
   schedule:
     - cron: '17 22 * * *'
   workflow_dispatch:
@@ -33,8 +55,8 @@ jobs:
       issues: write
       actions: write
     outputs:
-      status: ${{ steps.sync.outputs.status }}
-      merged_sha: ${{ steps.sync.outputs.merged_sha }}
+      status: ${{ steps.select.outputs.status || steps.sync.outputs.status }}
+      merged_sha: ${{ steps.sync.outputs.merged_sha || github.sha }}
       upstream_sha: ${{ steps.sync.outputs.upstream_sha }}
       build_sha: ${{ steps.select.outputs.build_sha }}
       version_code: ${{ steps.select.outputs.version_code }}
@@ -42,15 +64,18 @@ jobs:
       - name: Check out the custom branch
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: custom
+          ref: ${{ github.event_name == 'push' && github.sha || 'custom' }}
+          persist-credentials: ${{ github.event_name != 'push' }}
           fetch-depth: 0
           filter: blob:none
           submodules: false
       - name: Keep a copy of the current sync tool
+        if: github.event_name != 'push'
         run: |
           mkdir -p "$RUNNER_TEMP/sumire-sync"
           cp tools/fork-sync/sync_upstream.py "$RUNNER_TEMP/sumire-sync/"
       - name: Merge source updates and notify
+        if: github.event_name != 'push'
         id: sync
         env:
           GH_TOKEN: ${{ github.token }}
@@ -59,8 +84,8 @@ jobs:
       - name: Select the exact source and monotonic version
         id: select
         env:
-          STATUS: ${{ steps.sync.outputs.status }}
-          MERGED_SHA: ${{ steps.sync.outputs.merged_sha }}
+          STATUS: ${{ github.event_name == 'push' && 'pushed' || steps.sync.outputs.status }}
+          MERGED_SHA: ${{ steps.sync.outputs.merged_sha || github.sha }}
           FORCE: ${{ inputs.force_build }}
           REQUESTED_SHA: ${{ inputs.source_sha }}
           RUN_NUMBER: ${{ github.run_number }}
@@ -79,12 +104,13 @@ jobs:
           (( RUN_ATTEMPT >= 1 && RUN_ATTEMPT <= 249 ))
           base=$((1000000 + RUN_NUMBER * 1000 + RUN_ATTEMPT * 4))
           (( base <= 2099999998 ))
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
           echo "build_sha=$selected" >> "$GITHUB_OUTPUT"
           echo "version_code=$((base + 1))" >> "$GITHUB_OUTPUT"
 
   build:
     needs: sync
-    if: needs.sync.result == 'success' && (needs.sync.outputs.status == 'merged' || (github.event_name == 'workflow_dispatch' && inputs.force_build && needs.sync.outputs.status == 'unchanged'))
+    if: needs.sync.result == 'success' && (needs.sync.outputs.status == 'pushed' || needs.sync.outputs.status == 'merged' || (github.event_name == 'workflow_dispatch' && inputs.force_build && needs.sync.outputs.status == 'unchanged'))
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
