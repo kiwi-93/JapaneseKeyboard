@@ -30,6 +30,14 @@
                 </LinearLayout>
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/sizing_guide_help" android:textAppearance="?attr/textAppearanceBodyMedium" />
                 <com.google.android.material.slider.Slider android:id="@+id/sizingGuide" android:layout_width="match_parent" android:layout_height="wrap_content" android:contentDescription="@string/sizing_guide" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="16dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/flick_key_label_vertical_offset_title" android:textAppearance="?attr/textAppearanceBodyLarge" />
+                    <TextView android:id="@+id/sizingLabelPositionValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" android:textStyle="bold" android:textColor="?attr/colorPrimary" />
+                </LinearLayout>
+                <com.google.android.material.slider.Slider android:id="@+id/sizingLabelPosition" android:layout_width="match_parent" android:layout_height="wrap_content" android:contentDescription="@string/flick_key_label_vertical_offset_title" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/flick_key_label_vertical_offset_summary" android:textAppearance="?attr/textAppearanceBodySmall" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/sizingLabelPositionReset" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="end" android:text="@string/sizing_reset" />
+
                 <com.google.android.material.button.MaterialButton style="@style/Widget.Material3.Button.TextButton" android:id="@+id/sizingResetMode" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/sizing_reset_mode" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

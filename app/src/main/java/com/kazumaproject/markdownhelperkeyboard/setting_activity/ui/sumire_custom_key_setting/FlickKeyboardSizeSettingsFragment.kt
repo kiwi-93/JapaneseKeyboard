@@ -3,6 +3,8 @@ package com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.sumire_cust
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
+import android.widget.TextView
+import com.google.android.material.slider.Slider
 import androidx.fragment.app.Fragment
 import com.kazumaproject.custom_keyboard.layout.KeyboardDefaultLayouts
 import com.kazumaproject.custom_keyboard.view.FlickKeyboardView
@@ -24,6 +26,7 @@ class FlickKeyboardSizeSettingsFragment : Fragment(R.layout.fragment_flick_keybo
         super.onViewCreated(view, savedInstanceState)
         val keyboard = view.findViewById<FlickKeyboardView>(R.id.previewFlickKeyboardView)
         keyboard.setOnTouchListener { _, _ -> true }
+        bindLabelPositionControl(view, keyboard)
         keyboard.applyKeyboardTheme(
             themeMode = AppPreference.theme_mode,
             currentNightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK,
@@ -74,6 +77,7 @@ class FlickKeyboardSizeSettingsFragment : Fragment(R.layout.fragment_flick_keybo
             reset = { mode ->
                 if (isSumire) AppPreference.resetModeKeySizes("sumire", mode)
                 if (mode == null) {
+                    view.findViewById<Slider>(R.id.sizingLabelPosition).value = 0f
                     AppPreference.flick_key_width_scale_percent = 160
                     AppPreference.flick_key_height_scale_percent = 160
                     AppPreference.flick_key_icon_scale_percent = 80
@@ -93,6 +97,27 @@ class FlickKeyboardSizeSettingsFragment : Fragment(R.layout.fragment_flick_keybo
             inherited = { mode -> AppPreference.modeKeySize("sumire", mode, false) == null ||
                 AppPreference.modeKeySize("sumire", mode, true) == null },
         )
+    }
+
+    internal fun bindLabelPositionControl(view: View, keyboard: FlickKeyboardView) {
+        val slider = view.findViewById<Slider>(R.id.sizingLabelPosition)
+        val valueLabel = view.findViewById<TextView>(R.id.sizingLabelPositionValue)
+        slider.valueFrom = -16f
+        slider.valueTo = 16f
+        slider.stepSize = 1f
+        slider.value = AppPreference.flick_key_label_vertical_offset_dp.toFloat()
+        fun update(value: Float) {
+            valueLabel.text = view.context.getString(R.string.flick_key_label_vertical_offset_value, value.toInt())
+            keyboard.setLabelVerticalOffsetDp(value)
+        }
+        update(slider.value)
+        slider.addOnChangeListener { _, value, _ ->
+            AppPreference.flick_key_label_vertical_offset_dp = value.toInt()
+            update(value)
+        }
+        view.findViewById<View>(R.id.sizingLabelPositionReset).setOnClickListener {
+            slider.value = 0f
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

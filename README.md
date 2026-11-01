@@ -6,11 +6,12 @@
 - ライブ変換中の「、。！？…」で変換結果を確定
 - 文節変換中の Enter で現在の文節を確定し、次の文節へ移動
 - 文節変換中の左右キーで文節の長さを調整
-- キー中央の文字位置を上下に調整
+- スキン変更後に候補切替アイコンの標準色を復元
+- キー中央の文字位置を上下に調整（「入力方式」→「スミレ」または「カスタムキーボード」→「文字サイズ」）
 
 アプリ ID は `dev.ctrlcv.markdownhelperkeyboard` です。Google Play 版と共存できます。設定を移行する場合は、バックアップをエクスポートしてこの Fork にインポートしてください。
 
-ビルド方法は [開発ガイド](docs/FORK.md)、ライセンスは [LICENSE](LICENSE) と [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) を参照してください。
+ビルド方法は [開発ガイド](docs/DEVELOPMENT.md)、ライセンスは [LICENSE](LICENSE) と [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) を参照してください。
 
 ---
 

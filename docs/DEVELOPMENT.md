@@ -20,10 +20,6 @@ APK は `app/build/outputs/apk/fullStandard/debug/` に生成されます。
 ./gradlew :app:testFullStandardDebugUnitTest :custom_keyboard:testDebugUnitTest
 ```
 
-## キー文字の位置
-
-「スミレ」または「カスタムキーボード」の設定にある「キー文字の上下位置」で中央のラベルを調整できます。負の値で上、正の値で下へ移動し、0で標準位置に戻ります。
-
 ## 開発用 Workflow
 
 - [上流同期](UPSTREAM_SYNC.md)

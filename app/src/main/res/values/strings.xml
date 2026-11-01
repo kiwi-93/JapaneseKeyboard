@@ -1968,4 +1968,5 @@ ABC abc 0123456789　ＡＢＣ　１２３４５
     <string name="sumire_mode_key_highlight_summary">In the flick key layout, keep the current Hiragana, English, or Number mode key highlighted after switching modes.</string>
     <string name="flick_key_label_vertical_offset_title">Key label vertical position</string>
     <string name="flick_key_label_vertical_offset_summary">Move the center label vertically (dp). Negative moves up; positive moves down. Use 0 to reset.</string>
+    <string name="flick_key_label_vertical_offset_value">%1$d dp</string>
 </resources>
