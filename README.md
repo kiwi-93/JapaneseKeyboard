@@ -1,48 +1,20 @@
-# Sumire (スミレ) — The Privacy-First Japanese Keyboard
+# Sumire (スミレ) — カスタム Fork
 
-> **個人用カスタム版（非公式Fork）**: `custom` ブランチに、背景と変換操作の変更を保存しています。
-> 表示名は本家と同じです。Google Play版と共存するアプリID・署名・ビルド方法は [Forkの変更内容とビルド](docs/FORK.md) を参照してください。
+[KazumaProject/JapaneseKeyboard](https://github.com/KazumaProject/JapaneseKeyboard) を元に、表示と日本語変換の操作を調整した非公式 Fork です。
 
-## このForkと本家との違い
+- キーボードの左右・下の余白を背景色で表示
+- ライブ変換中の「、。！？…」で変換結果を確定
+- 文節変換中の Enter で現在の文節を確定し、次の文節へ移動
+- 文節変換中の左右キーで文節の長さを調整
+- キー中央の文字位置を上下に調整
 
-[KazumaProject/JapaneseKeyboard](https://github.com/KazumaProject/JapaneseKeyboard) を元に、キーボードの背景と日本語変換時の操作を調整した個人用Forkです。変更は `custom` ブランチにまとめています。
+アプリ ID は `dev.ctrlcv.markdownhelperkeyboard` です。Google Play 版と共存できます。設定を移行する場合は、バックアップをエクスポートしてこの Fork にインポートしてください。
 
-比較の基準は、最初に実機で動作確認した本家のコミット [`58b6bd9`](https://github.com/KazumaProject/JapaneseKeyboard/commit/58b6bd9b418a11606990caa8c6b746d0bc617d17) です。2026-10-31に、本家 `dev` の [`6e929009`](https://github.com/KazumaProject/JapaneseKeyboard/commit/6e929009dcb33a271dbf610163d442ad38c5696a) までの更新を取り込みました。本家のActions設定はFork側の方針を維持しています。
-
-| 項目 | 本家の基点バージョン | このFork |
-| --- | --- | --- |
-| 幅・位置・下余白を調整したキーボードの背景 | キーボードの周囲の余白から背後のアプリが見える | 通常表示の親領域をテーマの背景色で不透明にし、左右・下の余白も同じ背景にする |
-| ライブ変換中の「、」「。」「！」「？」「…」 | 記号を入力しても変換中の入力が続く | 表示中のライブ変換結果と入力した記号を確定する |
-| 通常の文節変換中のEnter | 変換中の文節をまとめて確定する | 現在の文節までを確定し、残りの文節の変換を続ける |
-| 通常の文節変換中の左右キー | 対象の文節を移動する | 対象文節の読みの長さを1文字ずつ縮小・拡大する。画面上のキーと物理キーボードに対応 |
-| スキン切り替え後の候補切替アイコン | 前のスキンの色が残る場合がある | 通常表示に戻したときにアイコンとバッジの標準色を復元する |
-| フル版・標準配布のアプリID | `com.kazumaproject.markdownhelperkeyboard` | `dev.ctrlcv.markdownhelperkeyboard` |
-
-背景の変更は、通常表示でキーボードの幅や余白を調整して使う場合に適用します。アプリの設定で有効にする実際のフローティングモードは変更していません。追加の背景設定は不要です。
-
-カスタム配列の編集機能は本家から引き継いだ機能です。このForkで新規追加したものではありません。表示名・アイコンも本家と同じものを使用しています。
-
-### インストールと設定の移行
-
-独自のアプリIDを使用するため、Google Play版や旧カスタム版（`com.kazumaproject.markdownhelperkeyboard.dev`）と共存できます。設定・配列・辞書は別管理です。旧版から必要なデータをエクスポートし、このForkへインポートしてください。旧版への上書き更新にはなりません。
-
-このForkは独自の署名鍵を継続使用します。ビルド方法・署名設定・検証結果は [docs/FORK.md](docs/FORK.md) にまとめています。本家更新の取り込み時に関連する自動テスト183件が成功し、フル版Debug APKのビルドと署名を確認しています。
-
-### 本家更新の自動取り込み
-
-GitHub Actionsは毎日07:17（日本時間）に本家の `dev` を確認し、競合がなければ `custom` に自動マージします。競合がある場合は `custom` を変更せず、対応が必要なファイルを通知します。更新がない日は通知しません。
-
-取り込み成功・競合・実行失敗は、このForkの「本家更新の通知」Issueに記録します。GitHub標準のメール通知を利用します。設定方法は [更新取り込みと通知](docs/UPSTREAM_SYNC.md) を参照してください。
-
-更新を取り込んだ場合は、同じActionsで回帰テストとFull Standard ARM64 APKのビルドを実行します。署名・R2配布は明示的に有効化するまで停止しています。更新なし・競合・同期失敗では自動ビルドしません。本家のActions設定の変更は取り込みません。
-
-### 個人用APKの配布
-
-配布先はCloudflare R2の `apk-private-store` / `apk.ctrlcv.dev` とし、既存のCloudflare AccessのGitHubログインを利用します。自動ビルド後の配布に加え、ローカルで作成した既存APKの手動アップロードも利用できます。[個人用APKのR2配布](docs/PRIVATE_DISTRIBUTION.md)に手順をまとめています。GitHub Releasesには公開しません。
+ビルド方法は [開発ガイド](docs/FORK.md)、ライセンスは [LICENSE](LICENSE) と [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) を参照してください。
 
 ---
 
-以下は本家プロジェクトの紹介です。Google Play・F-Droid・リリース・CIの各リンクは本家の配布先や実行結果を指します。このForkの変更を含むAPKは、上記のビルド手順で作成できます。
+以下は上流プロジェクトの紹介です。ストアや配布先のリンクは上流版を指します。
 
 <p align="center">
   <img src="images/demo.gif" width="250" alt="Sumire typing demo"/>
