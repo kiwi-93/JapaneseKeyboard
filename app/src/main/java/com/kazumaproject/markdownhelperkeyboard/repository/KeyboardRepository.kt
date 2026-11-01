@@ -949,6 +949,7 @@ class KeyboardRepository @Inject constructor(
                     action = null,
                     specialKeyColorStyle = specialKeyColorStyle,
                     doubleTapBinding = doubleTapBinding,
+                    labelVerticalOffsetDp = dbKey.labelVerticalOffsetDp.coerceIn(-16, 16),
                     textInputBehavior = KeyTextInputBehavior.fromDbValue(dbKey.textInputBehavior)
                 )
             } else {
@@ -967,6 +968,7 @@ class KeyboardRepository @Inject constructor(
                     action = restoredAction,
                     specialKeyColorStyle = specialKeyColorStyle,
                     doubleTapBinding = doubleTapBinding,
+                    labelVerticalOffsetDp = dbKey.labelVerticalOffsetDp.coerceIn(-16, 16),
                     textInputBehavior = KeyTextInputBehavior.fromDbValue(dbKey.textInputBehavior)
                 )
             }
@@ -1250,6 +1252,7 @@ class KeyboardRepository @Inject constructor(
                     hierarchicalFlickJson = if (keyData.keyType == KeyType.HIERARCHICAL_FLICK) {
                         uiLayout.hierarchicalFlickMaps[keyIdentifier]?.let(HierarchicalFlickCodec::encode)
                     } else null,
+                    labelVerticalOffsetDp = keyData.labelVerticalOffsetDp.coerceIn(-16, 16),
                     textInputBehavior = keyData.textInputBehavior.dbValue
                 )
             )

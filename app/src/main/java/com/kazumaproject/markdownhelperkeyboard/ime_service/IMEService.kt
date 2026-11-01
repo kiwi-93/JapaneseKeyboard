@@ -1069,15 +1069,6 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
     )
     private val runtimeInputPreferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { preferences, key ->
-            if (key == null || key == "flick_key_label_vertical_offset_dp") {
-                runOnMainThread {
-                    val offset = appPreference.flick_key_label_vertical_offset_dp.toFloat()
-                    (listOfNotNull(mainLayoutBinding?.customLayoutDefault,
-                        floatingKeyboardBinding?.customLayoutFloating) +
-                        splitInputs.values.map { it.binding.customLayoutFloating })
-                        .distinct().forEach { it.setLabelVerticalOffsetDp(offset) }
-                }
-            }
             if (key == null || KeyboardSurfaceSizePreferences.isLegacySizeKey(key)) {
                 runOnMainThread {
                     mainHandler.removeCallbacks(refreshLegacySizePreference)
@@ -11231,7 +11222,6 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             else -> FlickGuideSurface.Other
         }
     ) {
-        flickView.setLabelVerticalOffsetDp(appPreference.flick_key_label_vertical_offset_dp.toFloat())
         val config = resolveFlickGuideRuntimeConfig(
             surface = surface,
             mode = mode,

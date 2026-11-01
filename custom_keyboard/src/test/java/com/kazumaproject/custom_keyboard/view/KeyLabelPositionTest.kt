@@ -18,6 +18,24 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [35])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class KeyLabelPositionTest {
+    @Test fun keyboardUsesEachKeysOwnOffsetWhenRebuilt() {
+        val context = ContextThemeWrapper(ApplicationProvider.getApplicationContext(), androidx.appcompat.R.style.Theme_AppCompat)
+        val keyboard = FlickKeyboardView(context)
+        val layout = com.kazumaproject.custom_keyboard.data.KeyboardLayout(
+            keys = listOf(
+                com.kazumaproject.custom_keyboard.data.KeyData("a", 0, 0, false, labelVerticalOffsetDp = -5),
+                com.kazumaproject.custom_keyboard.data.KeyData("あ", 0, 1, false)),
+            flickKeyMaps = emptyMap(), columnCount = 2, rowCount = 1)
+        repeat(2) {
+            keyboard.setKeyboard(layout)
+            val buttons = (0 until keyboard.childCount).mapNotNull { keyboard.getChildAt(it) as? AutoSizeButton }
+            assertEquals(2, buttons.size)
+            assertEquals(-5f * context.resources.displayMetrics.density,
+                org.robolectric.util.ReflectionHelpers.getField<Float>(buttons[0], "labelVerticalOffsetPx"), 0f)
+            assertEquals(0f, org.robolectric.util.ReflectionHelpers.getField<Float>(buttons[1], "labelVerticalOffsetPx"), 0f)
+        }
+    }
+
     private fun button() = AutoSizeButton(ContextThemeWrapper(
         ApplicationProvider.getApplicationContext(), androidx.appcompat.R.style.Theme_AppCompat
     )).apply {

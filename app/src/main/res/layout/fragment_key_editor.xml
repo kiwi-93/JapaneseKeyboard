@@ -305,6 +305,41 @@
                     android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/flick_key_label_vertical_offset_title" />
+            <TextView
+                android:id="@+id/key_label_position_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:accessibilityLiveRegion="polite" />
+            <com.kazumaproject.custom_keyboard.view.AutoSizeButton
+                android:id="@+id/key_label_position_preview"
+                android:layout_width="96dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center"
+                android:textAllCaps="false"
+                android:clickable="false"
+                android:focusable="false" />
+            <com.google.android.material.slider.Slider
+                android:id="@+id/key_label_position"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/flick_key_label_vertical_offset_title" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/flick_key_label_vertical_offset_summary" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_label_position_reset"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sizing_reset" />
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/key_action_layout"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"

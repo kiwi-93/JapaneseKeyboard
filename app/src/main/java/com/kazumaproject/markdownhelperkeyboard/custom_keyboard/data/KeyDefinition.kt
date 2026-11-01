@@ -46,5 +46,7 @@ data class KeyDefinition(
     val doubleTapAction: String? = null,
     val doubleTapPolicy: String? = null,
     val textInputBehavior: String = KeyTextInputBehavior.NORMAL.dbValue,
+    @androidx.room.ColumnInfo(defaultValue = "0")
+    val labelVerticalOffsetDp: Int = 0,
     val hierarchicalFlickJson: String? = null
 )

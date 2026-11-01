@@ -69,14 +69,6 @@
             app:defaultValue="false"
             app:summary="@string/flick_keymap_guide_summary" />
 
-        <SeekBarPreference
-            android:key="flick_key_label_vertical_offset_dp"
-            android:defaultValue="0"
-            android:max="16"
-            app:min="-16"
-            app:showSeekBarValue="true"
-            android:title="@string/flick_key_label_vertical_offset_title"
-            android:summary="@string/flick_key_label_vertical_offset_summary" />
 
         <SeekBarPreference
             android:defaultValue="9"

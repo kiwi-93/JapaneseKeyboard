@@ -608,6 +608,7 @@ class EditableFlickKeyboardView @JvmOverloads constructor(
             }
         } else {
             AutoSizeButton(context).apply {
+                setLabelVerticalOffsetDp(keyData.labelVerticalOffsetDp.toFloat())
                 val label = KeyIconResolver.resolvedLabelForRendering(keyData)
                 isFocusable = false; isClickable = true
                 isAllCaps = false

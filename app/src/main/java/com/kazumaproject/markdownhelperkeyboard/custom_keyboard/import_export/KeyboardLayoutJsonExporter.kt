@@ -123,6 +123,7 @@ internal fun KeyWithFlicks.toExportDto(): KeyWithFlicksExportDto {
             hierarchicalFlick = this.key.hierarchicalFlickJson?.let {
                 HierarchicalFlickCodec.fromRuntime(HierarchicalFlickCodec.decode(it))
             },
+            labelVerticalOffsetDp = this.key.labelVerticalOffsetDp,
             textInputBehavior = this.key.textInputBehavior
         ),
         flicks = this.flicks.map {

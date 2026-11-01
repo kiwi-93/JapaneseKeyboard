@@ -194,6 +194,30 @@ class KeyEditorFragment : Fragment(R.layout.fragment_key_editor) {
         setupInitialState()
     }
 
+    internal fun bindLabelPositionControl(key: KeyData) {
+        binding.keyLabelPositionPreview.apply {
+            text = key.label
+            setDefaultTextSize(24f)
+        }
+        binding.keyLabelEdittext.doAfterTextChanged {
+            binding.keyLabelPositionPreview.text = it.toString()
+        }
+        binding.keyLabelPosition.apply {
+            valueFrom = -16f
+            valueTo = 16f
+            stepSize = 1f
+            value = key.labelVerticalOffsetDp.coerceIn(-16, 16).toFloat()
+            fun updateLabel(value: Float) {
+                binding.keyLabelPositionPreview.setLabelVerticalOffsetDp(value)
+                binding.keyLabelPositionValue.text = context.getString(
+                    R.string.flick_key_label_vertical_offset_value, value.toInt())
+            }
+            updateLabel(value)
+            addOnChangeListener { _, value, _ -> updateLabel(value) }
+        }
+        binding.keyLabelPositionReset.setOnClickListener { binding.keyLabelPosition.value = 0f }
+    }
+
     private fun setupGridEditor() {
         // Convert KeyActionMapper display actions into stable UI list
         val raw = KeyActionMapper.getDisplayActions(requireContext())
@@ -1241,6 +1265,7 @@ class KeyEditorFragment : Fragment(R.layout.fragment_key_editor) {
             }
 
             val key = currentKeyData!!
+            bindLabelPositionControl(key)
             selectedIconRef = key.icon?.takeIf { it.isOverride() }
             originalIconRef = selectedIconRef
             key.doubleTapBinding
@@ -2110,6 +2135,7 @@ class KeyEditorFragment : Fragment(R.layout.fragment_key_editor) {
         val savedIconRef = selectedIconRef?.takeIf { isSpecial }
         val updatedKey = originalKey.copy(
             label = newLabel,
+            labelVerticalOffsetDp = binding.keyLabelPosition.value.toInt(),
             keyType = newKeyType,
             isSpecialKey = isSpecial,
             action = newAction,

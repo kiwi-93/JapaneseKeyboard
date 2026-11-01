@@ -111,6 +111,9 @@ data class KeyDefinitionDto(
     val columnSpanUnits: Int? = null,
     @SerializedName("specialKeyColorStyle")
     val specialKeyColorStyle: String? = null,
+    @SerializedName("labelVerticalOffsetDp")
+    val labelVerticalOffsetDp: Int? = null,
+
     @SerializedName("textInputBehavior")
     val textInputBehavior: String? = null,
     @SerializedName("hierarchicalFlick")

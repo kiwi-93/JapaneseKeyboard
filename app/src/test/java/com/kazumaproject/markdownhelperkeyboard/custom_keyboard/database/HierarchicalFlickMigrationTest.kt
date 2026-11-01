@@ -25,11 +25,12 @@ class HierarchicalFlickMigrationTest {
             try {
                 val db = initial.openHelper.writableDatabase
                 db.execSQL("ALTER TABLE key_definitions DROP COLUMN hierarchicalFlickJson")
+                db.execSQL("ALTER TABLE key_definitions DROP COLUMN labelVerticalOffsetDp")
                 db.execSQL("PRAGMA user_version = 48")
             } finally { initial.close() }
             val migrated = Room.databaseBuilder(context, AppDatabase::class.java, name)
-                .addMigrations(AppDatabase.MIGRATION_48_49).allowMainThreadQueries().build()
-            try { assertEquals(49, migrated.openHelper.writableDatabase.version) }
+                .addMigrations(AppDatabase.MIGRATION_48_49, AppDatabase.MIGRATION_49_50).allowMainThreadQueries().build()
+            try { assertEquals(50, migrated.openHelper.writableDatabase.version) }
             finally { migrated.close() }
         } finally { context.deleteDatabase(name) }
     }

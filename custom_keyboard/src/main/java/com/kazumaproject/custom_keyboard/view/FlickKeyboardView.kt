@@ -503,14 +503,6 @@ class FlickKeyboardView @JvmOverloads constructor(
         rebuildCurrentKeyboard()
     }
 
-    private var labelVerticalOffsetDp = 0f
-
-    fun setLabelVerticalOffsetDp(offsetDp: Float) {
-        labelVerticalOffsetDp = offsetDp.coerceIn(-16f, 16f)
-        for (index in 0 until childCount) {
-            (getChildAt(index) as? AutoSizeButton)?.setLabelVerticalOffsetDp(labelVerticalOffsetDp)
-        }
-    }
 
     fun setFlickGuideTextSizeSp(sizeSp: Float) {
         val coerced = sizeSp.coerceIn(6f, 16f)
@@ -1250,7 +1242,7 @@ class FlickKeyboardView @JvmOverloads constructor(
 
         button.maxLines = if (modeSwitchLabelForDisplay(keyData) != null) 1 else Int.MAX_VALUE
         button.setDefaultTextSize(targetTextSizeSp)
-        button.setLabelVerticalOffsetDp(labelVerticalOffsetDp)
+        button.setLabelVerticalOffsetDp(keyData.labelVerticalOffsetDp.toFloat())
         button.setFlickGuideTextSizeSp(flickGuideTextSizeSp)
         button.setFlickGuideLabels(null)
         button.contentDescription = label

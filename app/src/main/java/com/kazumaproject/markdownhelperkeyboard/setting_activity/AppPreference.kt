@@ -1491,11 +1491,6 @@ object AppPreference {
             it.putBoolean(SUMIRE_KEYMAP_GUIDE_NUMBER_PREFERENCE.first, value)
         }
 
-    var flick_key_label_vertical_offset_dp: Int
-        get() = preferences.getInt("flick_key_label_vertical_offset_dp", 0).coerceIn(-16, 16)
-        set(value) = preferences.edit {
-            it.putInt("flick_key_label_vertical_offset_dp", value.coerceIn(-16, 16))
-        }
 
     var flick_guide_text_size_sp_preference: Int?
         get() = preferences.getInt(

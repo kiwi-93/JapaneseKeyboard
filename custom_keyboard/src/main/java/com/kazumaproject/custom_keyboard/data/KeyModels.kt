@@ -162,7 +162,8 @@ data class KeyData(
     val keyType: KeyType = if (isFlickable) KeyType.CIRCULAR_FLICK else KeyType.NORMAL,
     val specialKeyColorStyle: SpecialKeyColorStyle = SpecialKeyColorStyle.SPECIAL,
     val doubleTapBinding: DoubleTapBinding? = null,
-    val textInputBehavior: KeyTextInputBehavior = KeyTextInputBehavior.NORMAL
+    val textInputBehavior: KeyTextInputBehavior = KeyTextInputBehavior.NORMAL,
+    val labelVerticalOffsetDp: Int = 0
 )
 
 data class GridPlacement(

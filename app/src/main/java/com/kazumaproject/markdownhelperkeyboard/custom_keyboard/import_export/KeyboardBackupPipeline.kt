@@ -391,6 +391,7 @@ object KeyboardBackupNormalizer {
                 doubleTapAction = normalizedDoubleTapAction,
                 doubleTapPolicy = normalizedDoubleTapPolicy,
                 hierarchicalFlickJson = hierarchicalFlickJson,
+                labelVerticalOffsetDp = (keyDto.labelVerticalOffsetDp ?: 0).coerceIn(-16, 16),
                 textInputBehavior = KeyTextInputBehavior
                     .fromDbValue(keyDto.textInputBehavior)
                     .dbValue
