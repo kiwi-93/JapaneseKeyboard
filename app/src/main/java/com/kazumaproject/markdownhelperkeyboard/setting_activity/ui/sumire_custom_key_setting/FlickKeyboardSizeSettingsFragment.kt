@@ -64,6 +64,7 @@ class FlickKeyboardSizeSettingsFragment : Fragment(R.layout.fragment_flick_keybo
                     values.center, values.special)
                 keyboard.setFlickGuideEnabled(guides, allowMultiCharacterLabels = true)
                 keyboard.setFlickGuideTextSizeSp(values.guide)
+                keyboard.setLabelVerticalOffsetDp(AppPreference.flick_key_label_vertical_offset_dp.toFloat())
                 keyboard.setFlickGuideMaxCodePoints(AppPreference.flick_guide_max_characters_preference ?: 1)
                 keyboard.setKeyboard(if (isSumire) KeyboardDefaultLayouts.createFinalLayout(mode,
                     emptyMap(), AppPreference.sumire_input_method, AppPreference.sumire_keyboard_style,

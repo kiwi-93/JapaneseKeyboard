@@ -47,6 +47,14 @@ class AutoSizeButton @JvmOverloads constructor(
     }
 
     private var defaultTextSize = 14f
+    private var labelVerticalOffsetPx = 0f
+
+    fun setLabelVerticalOffsetDp(offsetDp: Float) {
+        labelVerticalOffsetPx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, offsetDp.coerceIn(-16f, 16f), resources.displayMetrics
+        )
+        invalidate()
+    }
 
     private val textBounds = Rect()
     private val guidePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -106,7 +114,10 @@ class AutoSizeButton @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
+        val saved = canvas.save()
+        if (!text.isNullOrEmpty()) canvas.translate(0f, labelVerticalOffsetPx)
         super.onDraw(canvas)
+        canvas.restoreToCount(saved)
         drawFlickGuides(canvas)
     }
 
@@ -211,7 +222,7 @@ class AutoSizeButton @JvmOverloads constructor(
         if (shouldDrawCenterTap(labels)) {
             val centerFm = centerGuidePaint.fontMetrics
             val centerBaseline = centerY - (centerFm.ascent + centerFm.descent) / 2f
-            canvas.drawText(labels.tap, centerX, centerBaseline, centerGuidePaint)
+            canvas.drawText(labels.tap, centerX, centerBaseline + labelVerticalOffsetPx, centerGuidePaint)
         }
     }
 
