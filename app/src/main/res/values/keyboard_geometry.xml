@@ -47,4 +47,6 @@
     <string name="keyboard_geometry_example_hello">Hello</string>
     <string name="keyboard_geometry_example_conversion">Convert</string>
     <string name="keyboard_geometry_example_japanese">Japanese</string>
+    <string name="keyboard_geometry_flick_follow">Flick angle follow: %1$d%%</string>
+    <string name="keyboard_geometry_flick_follow_summary">0% uses screen directions; 100% follows the key’s tilt. Key appearance and tap positions stay the same.</string>
 </resources>

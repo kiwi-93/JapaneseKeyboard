@@ -362,6 +362,11 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
         slider(R.string.keyboard_geometry_curve, geometry.geometry.curveDegrees, 25) {
             saveGeometry(geometry.copy(geometry = geometry.geometry.copy(curveDegrees = it)))
         }
+        slider(R.string.keyboard_geometry_flick_follow, geometry.geometry.flickRotationFollowPercent, 100,
+            viewId = R.id.keyboard_geometry_flick_follow) {
+            saveGeometry(geometry.copy(geometry = geometry.geometry.copy(flickRotationFollowPercent = it)))
+        }
+        body.addView(TextView(ctx).apply { setText(R.string.keyboard_geometry_flick_follow_summary) })
         choices(R.string.keyboard_geometry_curve_direction, listOf(1 to R.string.keyboard_geometry_curve_down, 2 to R.string.keyboard_geometry_curve_up),
             if (geometry.geometry.curveDirection == KeyboardCurveDirection.UP) 2 else 1) {
             saveGeometry(geometry.copy(geometry = geometry.geometry.copy(curveDirection = if (it == 2) KeyboardCurveDirection.UP else KeyboardCurveDirection.DOWN)))

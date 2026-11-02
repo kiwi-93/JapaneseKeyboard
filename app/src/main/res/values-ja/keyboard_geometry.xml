@@ -47,4 +47,6 @@
     <string name="keyboard_geometry_example_hello">こんにちは</string>
     <string name="keyboard_geometry_example_conversion">変換</string>
     <string name="keyboard_geometry_example_japanese">日本語</string>
+    <string name="keyboard_geometry_flick_follow">フリック判定の傾き追従: %1$d%%</string>
+    <string name="keyboard_geometry_flick_follow_summary">0%は画面の上下左右、100%はキーの向きに合わせて判定します。キーの見た目とタップ位置は変わりません。</string>
 </resources>

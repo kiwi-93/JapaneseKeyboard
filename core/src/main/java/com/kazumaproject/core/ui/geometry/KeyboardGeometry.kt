@@ -17,10 +17,12 @@ data class KeyboardGeometry(
     val hand: KeyboardCurveHand = KeyboardCurveHand.RIGHT,
     val autoHeight: Boolean = true,
     val curveDirection: KeyboardCurveDirection = KeyboardCurveDirection.DOWN,
+    val flickRotationFollowPercent: Int = 100,
 ) {
     fun normalized() = copy(
         splitPercent = splitPercent.coerceIn(0, MAX_SPLIT_PERCENT),
         curveDegrees = curveDegrees.coerceIn(0, MAX_CURVE_DEGREES),
+        flickRotationFollowPercent = flickRotationFollowPercent.coerceIn(0, 100),
     )
 
     val isDefault: Boolean get() = splitPercent <= 0 && curveDegrees <= 0

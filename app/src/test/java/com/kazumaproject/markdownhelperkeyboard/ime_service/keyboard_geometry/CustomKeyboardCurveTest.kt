@@ -42,6 +42,38 @@ class CustomKeyboardCurveTest {
         assertEquals(KeyboardGeometry(), a.read(GeometryKeyboard.SUMIRE, false).geometry)
     }
 
+    @Test fun followPercentIsEditableAndScopedWithoutChangingTheCurveOrCandidates() {
+        prefs.edit().clear().commit()
+        val store = KeyboardGeometryPreferences(prefs, "edited")
+        assertEquals(100, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
+        store.saveCustomShape(false, KeyboardGeometry(curveDegrees = 20))
+        store.saveCandidateDisplay(GeometryKeyboard.SUMIRE, false, KeyboardGeometryPreference(candidates = GeometryCandidatePlacement.LEFT))
+        val fragment = spy(UnifiedKeyboardSettingsFragment())
+        doReturn(context).`when`(fragment).requireContext()
+        val body = LinearLayout(context)
+        ReflectionHelpers.setField(fragment, "body", body)
+        ReflectionHelpers.setField(fragment, "selectedCustomId", "edited")
+        ReflectionHelpers.setField(fragment, "geometry", store.read(GeometryKeyboard.SUMIRE, false))
+        ReflectionHelpers.callInstanceMethod<Unit>(fragment, "buildCustomShapeBody")
+        val slider = body.findViewById<SeekBar>(R.id.keyboard_geometry_flick_follow)
+        assertEquals(100, slider.progress)
+        for (percent in listOf(0, 50, 100)) {
+            ReflectionHelpers.getField<SeekBar.OnSeekBarChangeListener>(slider, "mOnSeekBarChangeListener")
+                .onProgressChanged(slider, percent, true)
+            assertEquals(percent, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
+            assertEquals(20, store.read(GeometryKeyboard.SUMIRE, false).geometry.curveDegrees)
+            assertEquals(GeometryCandidatePlacement.LEFT, store.read(GeometryKeyboard.SUMIRE, false).candidates)
+        }
+        store.saveCustomShape(false, KeyboardGeometry(curveDegrees = 20, flickRotationFollowPercent = 50))
+        assertEquals(50, KeyboardGeometryPreferences(prefs, "edited").read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
+        assertEquals(100, store.read(GeometryKeyboard.SUMIRE, true).geometry.flickRotationFollowPercent)
+        assertEquals(100, KeyboardGeometryPreferences(prefs, "other").read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
+        store.saveCustomShape(false, KeyboardGeometry(flickRotationFollowPercent = -10))
+        assertEquals(0, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
+        store.saveCustomShape(false, KeyboardGeometry(flickRotationFollowPercent = 110))
+        assertEquals(100, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
+    }
+
     @Test fun candidateControlsPersistPerLayoutAndOrientationAndKeepTheCurve() {
         prefs.edit().clear().commit()
         val store = KeyboardGeometryPreferences(prefs, "edited")
@@ -141,7 +173,7 @@ class CustomKeyboardCurveTest {
         ReflectionHelpers.setField(fragment, "body", body)
         ReflectionHelpers.setField(fragment, "selectedCustomId", "edited")
         ReflectionHelpers.callInstanceMethod<Unit>(fragment, "buildCustomShapeBody")
-        val slider = (0 until body.childCount).map { body.getChildAt(it) }.filterIsInstance<SeekBar>().single()
+        val slider = (0 until body.childCount).map { body.getChildAt(it) }.filterIsInstance<SeekBar>().first()
         ReflectionHelpers.getField<SeekBar.OnSeekBarChangeListener>(slider, "mOnSeekBarChangeListener")
             .onProgressChanged(slider, 20, true)
         val groups = (0 until body.childCount).map { body.getChildAt(it) }.filterIsInstance<RadioGroup>()

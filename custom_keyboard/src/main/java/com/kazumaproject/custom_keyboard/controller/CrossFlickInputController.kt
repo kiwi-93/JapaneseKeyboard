@@ -1,5 +1,6 @@
 package com.kazumaproject.custom_keyboard.controller
 
+import com.kazumaproject.custom_keyboard.view.flickInputRotationDegrees
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PointF
@@ -270,7 +271,7 @@ class CrossFlickInputController(
                 view.drawableHotspotChanged(event.x, event.y)
 
                 val (dx, dy) = KeyboardGeometryMath.localDelta(
-                    event.rawX - initialTouchPoint.x, event.rawY - initialTouchPoint.y, anchorView?.rotation ?: 0f
+                    event.rawX - initialTouchPoint.x, event.rawY - initialTouchPoint.y, anchorView?.flickInputRotationDegrees() ?: 0f
                 )
 
                 if (inputMode == InputMode.TEXT && !isLongPressMode) {

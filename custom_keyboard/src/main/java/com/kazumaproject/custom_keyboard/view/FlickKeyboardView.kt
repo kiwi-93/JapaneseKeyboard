@@ -266,6 +266,7 @@ class FlickKeyboardView @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         val base = if (!geometry.isDefault && geometryBaseHeight > 0 && height > geometryBaseHeight) geometryBaseHeight else height
         super.onLayout(changed, left, top, right, top + base)
+        keyInfos.forEach { it.view.setFlickRotationFollowPercent(geometry.flickRotationFollowPercent) }
         if (geometry.isDefault) return
         val items = keyInfos.map { KeyboardGeometryItem(it.view, KeyboardGeometryGroup.SINGLE) }
         val result = KeyboardViewGeometry.apply(this, items, geometry, qwerty = false, baselineHeight = base.toFloat())
@@ -3257,6 +3258,8 @@ class FlickKeyboardView @JvmOverloads constructor(
         val inverse = Matrix()
         if (!selected.matrix.invert(inverse)) return null
         val local = KeyboardViewGeometry.parentToLocal(selected, x, y) ?: return null
+        // Keep DOWN and visual hit testing fixed; change only subsequent movement axes.
+        inverse.postRotate(selected.rotation - selected.flickInputRotationDegrees(), local.first, local.second)
         return MotionTarget(
             view = selected, displayOriginX = 0f, displayOriginY = 0f,
             localOffsetX = if (hit == null) local.first.coerceIn(0f, selected.width - 1f) - local.first else 0f,

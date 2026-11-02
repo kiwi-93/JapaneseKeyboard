@@ -73,6 +73,90 @@ class FlickKeyboardViewNearestKeyTest {
             assertEquals("direction=$direction", listOf(KeyAction.Text("a-up")), actions)
         }
     }
+    @Test fun followPercentChangesLocalGestureAxesWithoutMovingKeysOrTapOrigins() {
+        for (independent in listOf(false, true)) for (hand in com.kazumaproject.core.ui.geometry.KeyboardCurveHand.entries) {
+            val view = keyboard()
+            view.setIndependentMultiTouchEnabled(independent)
+            var originalRotation: Float? = null
+            for (percent in listOf(0, 50, 100)) {
+                view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, hand = hand, flickRotationFollowPercent = percent), 400)
+                layout(view)
+                val key = view.getChildAt(0)
+                if (originalRotation == null) originalRotation = key.rotation
+                assertEquals(originalRotation!!, key.rotation, .001f)
+                val points = mutableListOf<Pair<Float, Float>>()
+                key.setOnTouchListener { _, e -> points += e.x to e.y; true }
+                val (x, y) = KeyboardViewGeometry.centerInParent(key)
+                event(view, MotionEvent.ACTION_DOWN, x, y)
+                event(view, MotionEvent.ACTION_MOVE, x + 80f, y - 60f)
+                event(view, MotionEvent.ACTION_UP, x + 80f, y - 60f)
+                assertEquals(key.width / 2f, points.first().first, .1f)
+                assertEquals(key.height / 2f, points.first().second, .1f)
+                val dx = points.last().first - points.first().first
+                val dy = points.last().second - points.first().second
+                val angle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+                assertEquals(-36.8699f - key.rotation * percent / 100f, angle, .1f)
+            }
+        }
+    }
+
+    @Test fun standardFlickUsesIntermediateFollowPercentAtDirectionBoundaries() {
+        for (independent in listOf(false, true)) {
+            val view = keyboard()
+            view.setIndependentMultiTouchEnabled(independent)
+            val data = keys().keys.map { it.copy(keyType = KeyType.STANDARD_FLICK) }
+            val maps = data.associate { it.label to listOf(mapOf(
+                FlickDirection.TAP to FlickAction.Input("tap"), FlickDirection.UP to FlickAction.Input("up"),
+                FlickDirection.UP_RIGHT_FAR to FlickAction.Input("right"))) }
+            view.setKeyboard(KeyboardLayout(data, maps, 2, 2), KeyHitTestMode.NEAREST_KEY)
+            for (percent in listOf(0, 50, 100)) for (boundary in listOf(.25f, .75f)) {
+                actions.clear()
+                view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, flickRotationFollowPercent = percent), 400)
+                layout(view)
+                val key = view.getChildAt(0)
+                assertTrue(key.rotation < -1f)
+                val (x, y) = KeyboardViewGeometry.centerInParent(key)
+                val angle = Math.toRadians((-45f + key.rotation * boundary).toDouble())
+                val dx = kotlin.math.cos(angle).toFloat() * 100f
+                val dy = kotlin.math.sin(angle).toFloat() * 100f
+                event(view, MotionEvent.ACTION_DOWN, x, y)
+                event(view, MotionEvent.ACTION_MOVE, x + dx, y + dy)
+                event(view, MotionEvent.ACTION_UP, x + dx, y + dy)
+                assertEquals("percent=$percent boundary=$boundary independent=$independent", listOf(KeyAction.Text(
+                    if (percent / 100f > boundary) "right" else "up")), actions)
+            }
+        }
+    }
+
+    @Test fun twoStepFlickUsesIntermediateFollowPercentAtDirectionBoundaries() {
+        for (independent in listOf(false, true)) {
+            val view = keyboard()
+            view.setIndependentMultiTouchEnabled(independent)
+            val data = keys().keys.map { it.copy(keyType = KeyType.TWO_STEP_FLICK) }
+            val maps = data.associate { it.label to mapOf(
+                TfbiFlickDirection.TAP to mapOf(TfbiFlickDirection.TAP to "tap"),
+                TfbiFlickDirection.UP to mapOf(TfbiFlickDirection.TAP to "up", TfbiFlickDirection.UP to "up"),
+                TfbiFlickDirection.RIGHT to mapOf(TfbiFlickDirection.TAP to "right", TfbiFlickDirection.RIGHT to "right")) }
+            view.setKeyboard(KeyboardLayout(data, emptyMap(), 2, 2, twoStepFlickKeyMaps = maps), KeyHitTestMode.NEAREST_KEY)
+            for (percent in listOf(0, 50, 100)) for (boundary in listOf(.25f, .75f)) {
+                actions.clear()
+                view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, flickRotationFollowPercent = percent), 400)
+                layout(view)
+                val key = view.getChildAt(0)
+                assertTrue(key.rotation < -1f)
+                val (x, y) = KeyboardViewGeometry.centerInParent(key)
+                val angle = Math.toRadians((-45f + key.rotation * boundary).toDouble())
+                val dx = kotlin.math.cos(angle).toFloat() * 100f
+                val dy = kotlin.math.sin(angle).toFloat() * 100f
+                event(view, MotionEvent.ACTION_DOWN, x, y)
+                event(view, MotionEvent.ACTION_MOVE, x + dx, y + dy)
+                event(view, MotionEvent.ACTION_UP, x + dx, y + dy)
+                assertEquals("percent=$percent boundary=$boundary independent=$independent", listOf(KeyAction.Text(
+                    if (percent / 100f > boundary) "right" else "up")), actions)
+            }
+        }
+    }
+
     private val longs = mutableListOf<KeyAction>()
     private val releases = mutableListOf<KeyAction>()
     private val listener = object : FlickKeyboardView.OnKeyboardActionListener {

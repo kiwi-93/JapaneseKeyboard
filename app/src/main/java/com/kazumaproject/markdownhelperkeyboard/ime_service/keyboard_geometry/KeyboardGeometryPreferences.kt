@@ -78,6 +78,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         }
         return KeyboardGeometryPreference(
             geometry = KeyboardGeometry(
+                flickRotationFollowPercent = if (customLayoutId != null) int("flick_follow", 100) else 100,
                 curveDegrees = if (customLayoutId != null) int("curve", 0) else 0,
                 hand = if (customLayoutId == null) KeyboardCurveHand.RIGHT else runCatching { KeyboardCurveHand.valueOf(string("hand", "RIGHT")) }.getOrDefault(KeyboardCurveHand.RIGHT),
                 curveDirection = if (customLayoutId == null) KeyboardCurveDirection.DOWN else runCatching { KeyboardCurveDirection.valueOf(string("direction", "DOWN")) }.getOrDefault(KeyboardCurveDirection.DOWN),
@@ -146,6 +147,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         val p = prefix(GeometryKeyboard.SUMIRE, landscape)
         val value = geometry.normalized()
         preferences.edit().putInt("${p}_curve", value.curveDegrees)
+            .putInt("${p}_flick_follow", value.flickRotationFollowPercent)
             .putString("${p}_hand", value.hand.name)
             .putString("${p}_direction", value.curveDirection.name)
             .putBoolean("${p}_auto_height", value.autoHeight).apply()
