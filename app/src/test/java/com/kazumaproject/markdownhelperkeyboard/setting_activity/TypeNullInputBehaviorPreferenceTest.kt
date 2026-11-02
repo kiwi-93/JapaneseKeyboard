@@ -6,6 +6,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.kazumaproject.markdownhelperkeyboard.R
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.setting.SettingSearchIndex
+import com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.setting.SettingSearchScope
+import com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.setting.SettingDestinations
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -23,14 +26,16 @@ class TypeNullInputBehaviorPreferenceTest {
         )
         assertEquals(
             TYPE_NULL_INPUT_BEHAVIOR_KEY,
-            readTypeNullPreference(R.xml.pref_input_method).key
+            searchTypeNullPreference().key
         )
     }
 
     @Test
     fun legacyAndNewSettingsUseDefaultValue() {
         assertEquals("default", readTypeNullPreference(R.xml.pref_common_legacy).defaultValue)
-        assertEquals("default", readTypeNullPreference(R.xml.pref_input_method).defaultValue)
+        val destination = searchTypeNullPreference().destination
+        assertEquals(R.id.legacyCommonPreferenceFragment, SettingDestinations.destinationId(destination))
+        assertEquals(TYPE_NULL_INPUT_BEHAVIOR_KEY, SettingDestinations.highlightPreferenceKey(destination))
     }
 
     @Test
@@ -74,6 +79,10 @@ class TypeNullInputBehaviorPreferenceTest {
             preferences.getString(TYPE_NULL_INPUT_BEHAVIOR_KEY, "direct_commit")
         )
     }
+
+    private fun searchTypeNullPreference() = SettingSearchIndex.searchable(
+        ApplicationProvider.getApplicationContext<Context>(), SettingSearchScope.NEW_HOME
+    ).single { it.key == TYPE_NULL_INPUT_BEHAVIOR_KEY }
 
     private fun readTypeNullPreference(xmlRes: Int): PreferenceDeclaration {
         val context = ApplicationProvider.getApplicationContext<Context>()

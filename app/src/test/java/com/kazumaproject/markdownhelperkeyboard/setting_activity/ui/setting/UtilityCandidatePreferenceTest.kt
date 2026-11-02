@@ -226,12 +226,13 @@ class UtilityCandidatePreferenceTest {
             .first { it.key == SettingTabRegistry.TAB_CONVERSION_ENGINE }
 
         assertEquals(
-            R.id.utilityCandidatePreferenceFragment,
+            R.id.conversionEnginePreferenceFragment,
             SettingDestinations.destinationId(newRoute.destination),
         )
         assertEquals(R.xml.pref_conversion_engine, legacyTab.xmlRes)
         assertTrue(conversionEngineXmlContainsRoute())
-        assertTrue(routeIsInPredictionSourceCategory())
+        assertEquals(ROUTE_KEY, SettingDestinations.highlightPreferenceKey(newRoute.destination))
+        assertTrue(routeIsInCandidateCategory())
     }
 
     private fun conversionEngineXmlContainsRoute(): Boolean {
@@ -249,15 +250,15 @@ class UtilityCandidatePreferenceTest {
         }
     }
 
-    private fun routeIsInPredictionSourceCategory(): Boolean {
+    private fun routeIsInCandidateCategory(): Boolean {
         val parser = context.resources.getXml(R.xml.pref_conversion_engine)
         val androidNamespace = "http://schemas.android.com/apk/res/android"
         var currentCategoryTitle: String? = null
         return parser.use {
             while (parser.eventType != XmlPullParser.END_DOCUMENT) {
                 when (parser.eventType) {
-                    XmlPullParser.START_TAG -> when (parser.name) {
-                        "PreferenceCategory" -> {
+                    XmlPullParser.START_TAG -> when (parser.name.substringAfterLast('.')) {
+                        "PreferenceCategory", "CollapsiblePreferenceCategory" -> {
                             val titleRes = parser.getAttributeResourceValue(
                                 androidNamespace,
                                 "title",
@@ -269,10 +270,10 @@ class UtilityCandidatePreferenceTest {
                             parser.getAttributeValue(androidNamespace, "key") == ROUTE_KEY
                         ) {
                             return@use currentCategoryTitle ==
-                                context.getString(R.string.prediction_source_category_title)
+                                context.getString(R.string.settings_engine_candidates_title)
                         }
                     }
-                    XmlPullParser.END_TAG -> if (parser.name == "PreferenceCategory") {
+                    XmlPullParser.END_TAG -> if (parser.name.substringAfterLast('.') in setOf("PreferenceCategory", "CollapsiblePreferenceCategory")) {
                         currentCategoryTitle = null
                     }
                 }

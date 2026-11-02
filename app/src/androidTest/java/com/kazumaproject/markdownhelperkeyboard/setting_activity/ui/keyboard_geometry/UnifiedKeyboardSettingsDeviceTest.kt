@@ -14,6 +14,9 @@ import android.widget.SeekBar
 import android.widget.Spinner
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
+import androidx.preference.ListPreference
+import androidx.preference.SeekBarPreference
+import androidx.preference.SwitchPreferenceCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
@@ -66,62 +69,79 @@ class UnifiedKeyboardSettingsDeviceTest {
             prefs.edit().putString("keyboard_geometry_tenkey_portrait_candidates", "TOP").commit()
             ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)).use { scenario ->
                 await { var ready = false; scenario.onActivity { ready = it.isSettingsContentReady }; ready }
-                scenario.onActivity { host(it).navController.navigate(R.id.keyboardGeometrySettingsFragment,
-                    Bundle().apply { putString("geometryKeyboard", "TENKEY") }) }
-                var page: View? = null
-                await { scenario.onActivity { page = host(it).childFragmentManager.primaryNavigationFragment?.view }; page?.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_placement) != null }
-                instrumentation.runOnMainSync {
-                    val root = requireNotNull(page)
-                    assertNull(root.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_width))
-                    root.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_placement).check(3)
-                }
-                await { var ready = false; instrumentation.runOnMainSync { ready = (page?.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_width)?.width ?: 0) > 0 }; ready }
-                instrumentation.runOnMainSync {
-                    val root = requireNotNull(page)
-                    val seek = root.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_width)
-                    val x = seek.width * .8f; val y = seek.height / 2f
-                    touch(seek, MotionEvent.ACTION_DOWN, x, y)
-                    touch(seek, MotionEvent.ACTION_UP, x, y)
-                    root.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_order).check(2)
-                    val direction = root.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_direction)
-                    assertTrue(direction.isShown)
-                    direction.check(2)
-                    val longDisplay = root.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_long_display)
-                    assertTrue(longDisplay.isShown)
-                    assertEquals(1, longDisplay.checkedRadioButtonId)
-                    longDisplay.check(2)
-                    val spacing = root.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_spacing)
-                    assertTrue(spacing.isShown)
-                    val segmentEditor = root.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.keyboard_geometry_segment_editor)
-                    assertTrue(segmentEditor.isShown)
-                    assertTrue(segmentEditor.isChecked)
-                    segmentEditor.isChecked = false
-                }
+                scenario.onActivity { host(it).navController.navigate(R.id.candidateDisplayPreferenceFragment) }
+                var fragment: CandidateDisplayPreferenceFragment? = null
                 await {
-                    var ready = false
-                    instrumentation.runOnMainSync { ready = (page?.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_spacing)?.width ?: 0) > 0 }
-                    ready
+                    scenario.onActivity { fragment = host(it).childFragmentManager.primaryNavigationFragment as? CandidateDisplayPreferenceFragment }
+                    fragment?.preferenceScreen != null
                 }
                 instrumentation.runOnMainSync {
-                    val spacing = requireNotNull(page).findViewById<SeekBar>(R.id.keyboard_geometry_candidate_spacing)
-                    val x = spacing.width * .75f; val y = spacing.height / 2f
-                    touch(spacing, MotionEvent.ACTION_DOWN, x, y)
-                    touch(spacing, MotionEvent.ACTION_UP, x, y)
+                    val screen = requireNotNull(fragment)
+                    val placement = screen.findPreference<ListPreference>("candidate_display_placement")!!
+                    val width = screen.findPreference<SeekBarPreference>("candidate_display_width")!!
+                    val vertical = screen.findPreference<SwitchPreferenceCompat>("candidate_display_vertical")!!
+                    val spacing = screen.findPreference<SeekBarPreference>("candidate_display_line_spacing")!!
+                    assertFalse(width.isVisible)
+                    assertTrue(placement.callChangeListener("LEFT"))
+                    assertTrue(width.isVisible)
+                    assertTrue(width.callChangeListener(40))
+                    assertTrue(vertical.callChangeListener(true))
+                    assertTrue(spacing.isVisible)
+                    assertTrue(spacing.callChangeListener(24))
+                    assertTrue(placement.callChangeListener("TOP"))
+                    assertFalse(width.isVisible)
+                    assertFalse(spacing.isVisible)
                 }
-                assertFalse(prefs.getBoolean("keyboard_geometry_tenkey_portrait_segment_editor", true))
-                assertTrue(prefs.getInt("keyboard_geometry_tenkey_portrait_candidate_width_percent", 25) > 25)
+                assertEquals("TOP", prefs.getString("keyboard_geometry_tenkey_portrait_candidates", null))
+                assertEquals(40, prefs.getInt("keyboard_geometry_tenkey_portrait_candidate_width_percent", 25))
                 assertTrue(prefs.getBoolean("keyboard_geometry_tenkey_portrait_candidate_vertical_text", false))
-                assertTrue(prefs.getBoolean("keyboard_geometry_tenkey_portrait_candidate_right_to_left", false))
-                assertTrue(prefs.getBoolean("keyboard_geometry_tenkey_portrait_candidate_wrap_long_text", false))
-                assertTrue(prefs.getInt("keyboard_geometry_tenkey_portrait_candidate_spacing_dp", 4) > 4)
-                instrumentation.runOnMainSync {
-                    val root = requireNotNull(page)
-                    root.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_placement).check(1)
-                    assertNull(root.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_width))
-                    assertNull(root.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_order))
-                    assertNull(root.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_long_display))
-                    assertNull(root.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_spacing))
+                assertEquals(24, prefs.getInt("keyboard_geometry_tenkey_portrait_candidate_vertical_spacing_dp", 12))
+            }
+        } finally { restore(prefs, original) }
+    }
+
+    @Test fun landscapeFavoriteOpensTheMatchingPreview() {
+        AppPreference.init(context)
+        ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)).use { scenario ->
+            await { var ready = false; scenario.onActivity { ready = it.isSettingsContentReady }; ready }
+            scenario.onActivity {
+                host(it).navController.navigate(R.id.candidateDisplayPreferenceFragment, Bundle().apply {
+                    putString("highlightPreferenceKey", "candidate_view_height_landscape_setting_fragment_preference")
+                })
+            }
+            var fragment: CandidateDisplayPreferenceFragment? = null
+            await {
+                scenario.onActivity { fragment = host(it).childFragmentManager.primaryNavigationFragment as? CandidateDisplayPreferenceFragment }
+                fragment?.preferenceScreen != null
+            }
+            instrumentation.runOnMainSync {
+                assertEquals("landscape", requireNotNull(fragment).findPreference<ListPreference>("candidate_display_orientation")!!.value)
+            }
+        }
+    }
+
+    @Test fun qwertyDoesNotOfferCenterCandidates() {
+        AppPreference.init(context)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val original = prefs.all.toMap()
+        try {
+            prefs.edit().putString("keyboard_geometry_qwerty_portrait_candidates", "CENTER").commit()
+            ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)).use { scenario ->
+                await { var ready = false; scenario.onActivity { ready = it.isSettingsContentReady }; ready }
+                scenario.onActivity {
+                    host(it).navController.navigate(R.id.keyboardGeometrySettingsFragment,
+                        Bundle().apply { putString("geometryKeyboard", "QWERTY") })
                 }
+                var page: View? = null
+                await {
+                    scenario.onActivity { page = host(it).childFragmentManager.primaryNavigationFragment?.view }
+                    page?.findViewById<View>(R.id.keyboard_layout_preview) != null
+                }
+                instrumentation.runOnMainSync {
+                    assertNull(requireNotNull(page).findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_placement))
+                    assertNull(requireNotNull(page).findViewById<SeekBar>(R.id.keyboard_geometry_center_candidate_spacing))
+                }
+                assertEquals("CENTER", prefs.getString("keyboard_geometry_qwerty_portrait_candidates", null))
             }
         } finally { restore(prefs, original) }
     }
@@ -195,8 +215,7 @@ class UnifiedKeyboardSettingsDeviceTest {
                 scenario.onActivity { host(it).navController.navigate(R.id.keyboardGeometrySettingsFragment,
                     Bundle().apply { putString("geometryKeyboard", "TENKEY") }) }
                 var page: View? = null
-                await { scenario.onActivity { page = host(it).childFragmentManager.primaryNavigationFragment?.view }; page?.findViewById<RadioGroup>(R.id.keyboard_layout_tab_selector) != null }
-                instrumentation.runOnMainSync { requireNotNull(page).findViewById<RadioGroup>(R.id.keyboard_layout_tab_selector).check(1) }
+                await { scenario.onActivity { page = host(it).childFragmentManager.primaryNavigationFragment?.view }; page?.findViewById<View>(R.id.keyboard_layout_edit_size) != null }
                 instrumentation.runOnMainSync { requireNotNull(page).findViewById<View>(R.id.keyboard_layout_edit_size).performClick() }
                 await { var ready = false; instrumentation.runOnMainSync { ready = (page?.findViewById<GeometryPreview>(R.id.keyboard_layout_preview)?.adjustmentBounds()?.width() ?: 0f) > 0f }; ready }
                 var left = 0f
@@ -334,8 +353,7 @@ class UnifiedKeyboardSettingsDeviceTest {
                     val page = requireNotNull(root)
                     val types = page.findViewById<RadioGroup>(R.id.keyboard_layout_type_selector)
                     types.check(2); types.check(1)
-                    page.findViewById<RadioGroup>(R.id.keyboard_layout_tab_selector).check(2)
-                    page.findViewById<RadioGroup>(R.id.keyboard_layout_tab_selector).check(1)
+                    assertNull(page.findViewById<RadioGroup>(R.id.keyboard_layout_tab_selector))
                 }
                 instrumentation.waitForIdleSync()
                 assertEquals(before, sizeEntries(prefs))
@@ -367,7 +385,7 @@ class UnifiedKeyboardSettingsDeviceTest {
                 assertEquals(before + ("keyboard_height_preference" to 240), sizeEntries(prefs))
                 instrumentation.runOnMainSync { requireNotNull(root).findViewById<View>(R.id.keyboard_layout_edit_done).performClick() }
                 instrumentation.waitForIdleSync()
-                instrumentation.runOnMainSync { requireNotNull(root).findViewById<View>(R.id.keyboard_layout_edit_position).performClick() }
+                instrumentation.runOnMainSync { requireNotNull(root).findViewById<View>(R.id.keyboard_layout_edit_size).performClick() }
                 instrumentation.waitForIdleSync()
                 instrumentation.runOnMainSync {
                     val page = requireNotNull(root); val preview = page.findViewById<GeometryPreview>(R.id.keyboard_layout_preview)
@@ -574,8 +592,8 @@ class UnifiedKeyboardSettingsDeviceTest {
                 await { var ready = false; scenario.onActivity { ready = it.isSettingsContentReady }; ready }
                 scenario.onActivity { this@UnifiedKeyboardSettingsDeviceTest.host(it).navController.navigate(R.id.keyboardSettingFragment) }
                 var page: View? = null
-                await { scenario.onActivity { page = this@UnifiedKeyboardSettingsDeviceTest.host(it).childFragmentManager.primaryNavigationFragment?.view }; page?.findViewById<View>(R.id.keyboard_layout_edit_position) != null }
-                instrumentation.runOnMainSync { requireNotNull(page).findViewById<View>(R.id.keyboard_layout_edit_position).performClick() }
+                await { scenario.onActivity { page = this@UnifiedKeyboardSettingsDeviceTest.host(it).childFragmentManager.primaryNavigationFragment?.view }; page?.findViewById<View>(R.id.keyboard_layout_edit_size) != null }
+                instrumentation.runOnMainSync { requireNotNull(page).findViewById<View>(R.id.keyboard_layout_edit_size).performClick() }
                 await {
                     var ready = false
                     instrumentation.runOnMainSync { ready = (page?.findViewById<View>(R.id.keyboard_layout_handles)?.height ?: 0) > 0 }
