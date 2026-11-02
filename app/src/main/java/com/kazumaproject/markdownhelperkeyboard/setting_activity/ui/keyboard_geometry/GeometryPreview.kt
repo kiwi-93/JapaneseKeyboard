@@ -325,7 +325,8 @@ internal class GeometryPreview(context: Context, private val keyboard: PreviewKe
         }
         val gap = if (qwerty) min(bodyWidth * value.geometry.splitPercent / 100f, max(0f, bodyWidth - 240f * density)) else 0f
         val placed = PreviewGeometry.place(keys, bodyWidth, baseHeight, gap, value.geometry.curveDegrees, value.geometry.curveDirection,
-            value.geometry.hand == KeyboardCurveHand.RIGHT, qwerty, value.geometry.autoHeight, (screenHeight - chromeHeight).coerceAtLeast(baseHeight))
+            value.geometry.hand == KeyboardCurveHand.RIGHT, qwerty, value.geometry.autoHeight, (screenHeight - chromeHeight).coerceAtLeast(baseHeight),
+            if (keyboard == PreviewKeyboard.CUSTOM) value.geometry.columnStaggerDp * density else 0f)
         val colors = previewColors(previewContext)
         val candidateSide = when {
             side > 0f -> side
@@ -714,6 +715,7 @@ internal class GeometryPreview(context: Context, private val keyboard: PreviewKe
         val vertical = (200f - (AppPreference.flick_key_height_scale_percent ?: 160).coerceIn(0, 200)) / 100f
         val density = resources.displayMetrics.density
         val iconViews = mutableMapOf<ImageView, KeyData>()
+        val columnCenters = mutableMapOf<View, Float>()
         fun params(p: GridPlacement, baseH: Int = 0, baseV: Int = 0) = GridLayout.LayoutParams().apply {
             rowSpec = GridLayout.spec(p.rowUnits, p.rowSpanUnits, GridLayout.FILL, p.rowSpanUnits.toFloat())
             columnSpec = GridLayout.spec(p.columnUnits, p.columnSpanUnits, GridLayout.FILL, p.columnSpanUnits.toFloat())
@@ -789,6 +791,8 @@ internal class GeometryPreview(context: Context, private val keyboard: PreviewKe
                     val h = if (data.keyType == KeyType.STANDARD_FLICK) 6 else if (data.isSpecialKey) 3 else 4
                     val v = if (data.keyType == KeyType.STANDARD_FLICK) 9 else 6
                     grid.addView(view, params(item.placement, h, v))
+                    val units = if (layout.items.isNotEmpty()) 2f else 1f
+                    columnCenters[view] = (item.placement.columnUnits + item.placement.columnSpanUnits / 2f) / units
                 }
             }
         }
@@ -809,7 +813,7 @@ internal class GeometryPreview(context: Context, private val keyboard: PreviewKe
         return (0 until grid.childCount).mapNotNull { i ->
             val v = grid.getChildAt(i)
             if (v is Space || v.width <= 0 || v.height <= 0) null
-            else PreviewItem(v, RectF(v.left.toFloat(), v.top.toFloat(), v.right.toFloat(), v.bottom.toFloat()), PreviewGroup.SINGLE)
+            else PreviewItem(v, RectF(v.left.toFloat(), v.top.toFloat(), v.right.toFloat(), v.bottom.toFloat()), PreviewGroup.SINGLE, columnCenters.getValue(v))
         }
     }
 
@@ -887,7 +891,7 @@ private data class PreviewScene(val screenWidth: Float, val height: Float, val b
     val candidateSideWidth: Float, val backgroundColor: Int, val candidateTextColor: Int,
     val items: List<PlacedPreviewItem>)
 private enum class PreviewGroup { LEFT, RIGHT, SINGLE }
-private data class PreviewItem(val view: View, val bounds: RectF, val group: PreviewGroup)
+private data class PreviewItem(val view: View, val bounds: RectF, val group: PreviewGroup, val columnCenter: Float = 0f)
 private data class PlacedPreviewItem(val view: View, val bounds: RectF, val group: PreviewGroup,
     var x: Float, var y: Float, var scaleX: Float, var scaleY: Float, val angle: Float) {
     private val cosine get() = cos(Math.toRadians(angle.toDouble())).toFloat()
@@ -911,8 +915,22 @@ private data class PlacedPreviewItem(val view: View, val bounds: RectF, val grou
 private object PreviewGeometry {
     data class Result(val height: Float, val items: List<PlacedPreviewItem>)
     fun place(keys: List<PreviewItem>, width: Float, baseHeight: Float, gap: Float, degrees: Int, direction: KeyboardCurveDirection,
-        rightHand: Boolean, qwerty: Boolean, autoHeight: Boolean, maximumHeight: Float): Result {
+        rightHand: Boolean, qwerty: Boolean, autoHeight: Boolean, maximumHeight: Float, columnStepPx: Float = 0f): Result {
         if (keys.isEmpty()) return Result(baseHeight, emptyList())
+        if (columnStepPx != 0f && !qwerty) {
+            val top = keys.minOf { it.bounds.top }.coerceAtLeast(0f)
+            val bottom = (baseHeight - keys.maxOf { it.bounds.bottom }).coerceAtLeast(0f)
+            val minY = keys.minOf { it.bounds.top - it.columnCenter * columnStepPx }
+            val maxY = keys.maxOf { it.bounds.bottom - it.columnCenter * columnStepPx }
+            val extent = (maxY - minY).coerceAtLeast(1f)
+            val height = min(maximumHeight, max(baseHeight, extent + top + bottom))
+            val fit = min(1f, (height - top - bottom).coerceAtLeast(1f) / extent)
+            return Result(height, keys.map {
+                PlacedPreviewItem(it.view, it.bounds, it.group, it.bounds.centerX(),
+                    top + (it.bounds.centerY() - it.columnCenter * columnStepPx - minY) * fit,
+                    it.bounds.width() / it.view.width, it.bounds.height() / it.view.height * fit, 0f)
+            })
+        }
         if (degrees == 0 && gap == 0f) return Result(baseHeight, keys.map {
             PlacedPreviewItem(it.view, it.bounds, it.group, it.bounds.centerX(), it.bounds.centerY(), 1f, 1f, 0f)
         })

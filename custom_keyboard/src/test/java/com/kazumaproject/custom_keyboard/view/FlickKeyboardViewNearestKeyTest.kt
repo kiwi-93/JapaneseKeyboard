@@ -17,7 +17,6 @@ import com.kazumaproject.custom_keyboard.data.KeyType
 import com.kazumaproject.custom_keyboard.data.KeyboardLayout
 import com.kazumaproject.custom_keyboard.data.SpacerItem
 import com.kazumaproject.core.ui.geometry.KeyboardGeometry
-import com.kazumaproject.core.ui.geometry.KeyboardCurveDirection
 import com.kazumaproject.core.ui.geometry.KeyboardViewGeometry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -36,125 +35,84 @@ import java.util.concurrent.TimeUnit
 class FlickKeyboardViewNearestKeyTest {
     private val actions = mutableListOf<KeyAction>()
 
-    @Test fun curvedSumireKeysReceiveTouchesAtTheirDisplayedCenters() {
+    @Test fun staggerMovesWholeColumnsWithEqualSignedStepsAndKeepsKeysUpright() {
         val view = keyboard()
-        view.setSumireGeometry(KeyboardGeometry(curveDegrees = 20), 400)
-        layout(view)
-        val key = view.getChildAt(0)
-        assertTrue(key.rotation != 0f)
-        val (x, y) = KeyboardViewGeometry.centerInParent(key)
-        tap(view, x, y)
-        assertEquals(listOf(KeyAction.Text("a")), actions)
-        view.setSumireGeometry(KeyboardGeometry(), 400)
-        layout(view)
-        assertEquals(0f, key.rotation, 0f)
-    }
-
-    @Test fun curvedStandardFlickUsesTheKeyDirection() {
-        for (direction in KeyboardCurveDirection.entries) {
-            actions.clear()
-            val view = keyboard()
-            val data = keys().keys.map { it.copy(keyType = KeyType.STANDARD_FLICK) }
-            val maps = data.associate { it.label to listOf(mapOf(
-                FlickDirection.TAP to FlickAction.Input(it.label),
-                FlickDirection.UP to FlickAction.Input(it.label + "-up")
-            )) }
-            view.setKeyboard(KeyboardLayout(data, maps, 2, 2), KeyHitTestMode.NEAREST_KEY)
-            view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, curveDirection = direction), 400)
-            layout(view)
-            val key = view.getChildAt(0)
-            val (x, y) = KeyboardViewGeometry.centerInParent(key)
-            val radians = Math.toRadians(key.rotation.toDouble())
-            val dx = kotlin.math.sin(radians).toFloat() * 100f
-            val dy = -kotlin.math.cos(radians).toFloat() * 100f
-            event(view, MotionEvent.ACTION_DOWN, x, y)
-            event(view, MotionEvent.ACTION_MOVE, x + dx, y + dy)
-            event(view, MotionEvent.ACTION_UP, x + dx, y + dy)
-            assertEquals("direction=$direction", listOf(KeyAction.Text("a-up")), actions)
-        }
-    }
-    @Test fun followPercentChangesLocalGestureAxesWithoutMovingKeysOrTapOrigins() {
-        for (independent in listOf(false, true)) for (hand in com.kazumaproject.core.ui.geometry.KeyboardCurveHand.entries) {
-            val view = keyboard()
-            view.setIndependentMultiTouchEnabled(independent)
-            var originalRotation: Float? = null
-            for (percent in listOf(0, 50, 100)) {
-                view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, hand = hand, flickRotationFollowPercent = percent), 400)
-                layout(view)
-                val key = view.getChildAt(0)
-                if (originalRotation == null) originalRotation = key.rotation
-                assertEquals(originalRotation!!, key.rotation, .001f)
-                val points = mutableListOf<Pair<Float, Float>>()
-                key.setOnTouchListener { _, e -> points += e.x to e.y; true }
-                val (x, y) = KeyboardViewGeometry.centerInParent(key)
-                event(view, MotionEvent.ACTION_DOWN, x, y)
-                event(view, MotionEvent.ACTION_MOVE, x + 80f, y - 60f)
-                event(view, MotionEvent.ACTION_UP, x + 80f, y - 60f)
-                assertEquals(key.width / 2f, points.first().first, .1f)
-                assertEquals(key.height / 2f, points.first().second, .1f)
-                val dx = points.last().first - points.first().first
-                val dy = points.last().second - points.first().second
-                val angle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
-                assertEquals(-36.8699f - key.rotation * percent / 100f, angle, .1f)
+        val data = (0 until 6).map { i -> KeyData(label = "$i", row = i / 3, column = i % 3,
+            isFlickable = false, action = KeyAction.Text("$i"), keyType = KeyType.NORMAL) }
+        view.setKeyboard(KeyboardLayout(data, emptyMap(), 3, 2), KeyHitTestMode.KEY_BOUNDS)
+        for (step in listOf(0, 12, -12, 0)) {
+            var required = 0
+            view.setSumireGeometry(KeyboardGeometry(columnStaggerDp = step), 400) { required = it }
+            // Expand the measured body to leave the original key sizes intact.
+            val extra = (kotlin.math.abs(step) * 2 * view.resources.displayMetrics.density).toInt()
+            // Keep the activity's next traversal from replacing our IME-sized surface.
+            view.layoutParams = view.layoutParams.apply { width = 600; height = 400 + extra }
+            view.measure(View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(400 + extra, View.MeasureSpec.EXACTLY))
+            view.layout(0, 0, 600, 400 + extra)
+            shadowOf(Looper.getMainLooper()).idle()
+            val centers = (0..5).map { KeyboardViewGeometry.centerInParent(view.getChildAt(it)) }
+            val expected = step * view.resources.displayMetrics.density
+            for (i in listOf(0, 1, 3, 4)) assertEquals("step=$step height=${view.height} required=$required keyHeight=${view.getChildAt(i).height} scale=${view.getChildAt(i).scaleY}", expected, centers[i].second - centers[i + 1].second, .1f)
+            for (i in 0..2) assertEquals(centers[3].second - centers[0].second, centers[i + 3].second - centers[i].second, .1f)
+            for (i in 0..5) {
+                val key = view.getChildAt(i)
+                assertEquals(0f, key.rotation, 0f)
+                assertEquals(1f, key.scaleY, .01f)
+                actions.clear()
+                tap(view, centers[i].first, centers[i].second)
+                assertEquals(listOf(KeyAction.Text("$i")), actions)
             }
+            if (step != 0) assertEquals(400 + extra, required)
         }
     }
 
-    @Test fun standardFlickUsesIntermediateFollowPercentAtDirectionBoundaries() {
-        for (independent in listOf(false, true)) {
+    @Test fun staggeredStandardAndTwoStepFlickStillUseScreenDirections() {
+        for (kind in listOf(KeyType.STANDARD_FLICK, KeyType.TWO_STEP_FLICK)) for (independent in listOf(false, true)) {
             val view = keyboard()
             view.setIndependentMultiTouchEnabled(independent)
-            val data = keys().keys.map { it.copy(keyType = KeyType.STANDARD_FLICK) }
+            val data = keys().keys.map { it.copy(keyType = kind) }
             val maps = data.associate { it.label to listOf(mapOf(
-                FlickDirection.TAP to FlickAction.Input("tap"), FlickDirection.UP to FlickAction.Input("up"),
+                FlickDirection.TAP to FlickAction.Input("tap"),
+                FlickDirection.UP to FlickAction.Input("up"),
                 FlickDirection.UP_RIGHT_FAR to FlickAction.Input("right"))) }
-            view.setKeyboard(KeyboardLayout(data, maps, 2, 2), KeyHitTestMode.NEAREST_KEY)
-            for (percent in listOf(0, 50, 100)) for (boundary in listOf(.25f, .75f)) {
+            val two = data.associate { it.label to mapOf(
+                TfbiFlickDirection.TAP to mapOf(TfbiFlickDirection.TAP to "tap"),
+                TfbiFlickDirection.UP to mapOf(
+                    TfbiFlickDirection.TAP to "up", TfbiFlickDirection.UP to "up"),
+                TfbiFlickDirection.RIGHT to mapOf(
+                    TfbiFlickDirection.TAP to "right", TfbiFlickDirection.RIGHT to "right")) }
+            view.setKeyboard(KeyboardLayout(data, maps, 2, 2, twoStepFlickKeyMaps = two), KeyHitTestMode.KEY_BOUNDS)
+            for (step in listOf(-20, 20)) for ((dx, dy, expected) in listOf(Triple(0f, -100f, "up"), Triple(100f, 0f, "right"))) {
                 actions.clear()
-                view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, flickRotationFollowPercent = percent), 400)
+                view.setSumireGeometry(KeyboardGeometry(columnStaggerDp = step), 400)
                 layout(view)
-                val key = view.getChildAt(0)
-                assertTrue(key.rotation < -1f)
-                val (x, y) = KeyboardViewGeometry.centerInParent(key)
-                val angle = Math.toRadians((-45f + key.rotation * boundary).toDouble())
-                val dx = kotlin.math.cos(angle).toFloat() * 100f
-                val dy = kotlin.math.sin(angle).toFloat() * 100f
+                val (x, y) = KeyboardViewGeometry.centerInParent(view.getChildAt(0))
                 event(view, MotionEvent.ACTION_DOWN, x, y)
                 event(view, MotionEvent.ACTION_MOVE, x + dx, y + dy)
                 event(view, MotionEvent.ACTION_UP, x + dx, y + dy)
-                assertEquals("percent=$percent boundary=$boundary independent=$independent", listOf(KeyAction.Text(
-                    if (percent / 100f > boundary) "right" else "up")), actions)
+                assertEquals("kind=$kind step=$step independent=$independent", listOf(KeyAction.Text(expected)), actions)
             }
         }
     }
 
-    @Test fun twoStepFlickUsesIntermediateFollowPercentAtDirectionBoundaries() {
-        for (independent in listOf(false, true)) {
-            val view = keyboard()
-            view.setIndependentMultiTouchEnabled(independent)
-            val data = keys().keys.map { it.copy(keyType = KeyType.TWO_STEP_FLICK) }
-            val maps = data.associate { it.label to mapOf(
-                TfbiFlickDirection.TAP to mapOf(TfbiFlickDirection.TAP to "tap"),
-                TfbiFlickDirection.UP to mapOf(TfbiFlickDirection.TAP to "up", TfbiFlickDirection.UP to "up"),
-                TfbiFlickDirection.RIGHT to mapOf(TfbiFlickDirection.TAP to "right", TfbiFlickDirection.RIGHT to "right")) }
-            view.setKeyboard(KeyboardLayout(data, emptyMap(), 2, 2, twoStepFlickKeyMaps = maps), KeyHitTestMode.NEAREST_KEY)
-            for (percent in listOf(0, 50, 100)) for (boundary in listOf(.25f, .75f)) {
-                actions.clear()
-                view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, flickRotationFollowPercent = percent), 400)
-                layout(view)
-                val key = view.getChildAt(0)
-                assertTrue(key.rotation < -1f)
-                val (x, y) = KeyboardViewGeometry.centerInParent(key)
-                val angle = Math.toRadians((-45f + key.rotation * boundary).toDouble())
-                val dx = kotlin.math.cos(angle).toFloat() * 100f
-                val dy = kotlin.math.sin(angle).toFloat() * 100f
-                event(view, MotionEvent.ACTION_DOWN, x, y)
-                event(view, MotionEvent.ACTION_MOVE, x + dx, y + dy)
-                event(view, MotionEvent.ACTION_UP, x + dx, y + dy)
-                assertEquals("percent=$percent boundary=$boundary independent=$independent", listOf(KeyAction.Text(
-                    if (percent / 100f > boundary) "right" else "up")), actions)
-            }
-        }
+    @Test fun staggerUsesHalfColumnPlacementAndSpanningKeyCenters() {
+        val view = keyboard()
+        val data = keys().keys
+        val placements = listOf(GridPlacement(0, 0), GridPlacement(0, 3), GridPlacement(2, 0, 2, 4))
+        view.setKeyboard(KeyboardLayout(data.take(3), emptyMap(), 3, 2,
+            items = placements.mapIndexed { i, p -> KeyItem("$i", data[i], p) }), KeyHitTestMode.KEY_BOUNDS)
+        view.setSumireGeometry(KeyboardGeometry(columnStaggerDp = 16), 400)
+        view.measure(View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(448, View.MeasureSpec.EXACTLY))
+        view.layout(0, 0, 600, 448)
+        val a = view.getChildAt(0); val b = view.getChildAt(1)
+        assertEquals(24f * view.resources.displayMetrics.density, a.translationY - b.translationY, .1f)
+        assertEquals(0f, view.getChildAt(2).rotation, 0f)
+        actions.clear()
+        val (x, y) = KeyboardViewGeometry.centerInParent(view.getChildAt(2))
+        tap(view, x, y)
+        assertEquals(listOf(KeyAction.Text("c")), actions)
     }
 
     private val longs = mutableListOf<KeyAction>()

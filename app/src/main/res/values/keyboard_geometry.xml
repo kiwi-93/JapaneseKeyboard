@@ -47,6 +47,7 @@
     <string name="keyboard_geometry_example_hello">Hello</string>
     <string name="keyboard_geometry_example_conversion">Convert</string>
     <string name="keyboard_geometry_example_japanese">Japanese</string>
-    <string name="keyboard_geometry_flick_follow">Flick angle follow: %1$d%%</string>
-    <string name="keyboard_geometry_flick_follow_summary">0% uses screen directions; 100% follows the key’s tilt. Key appearance and tap positions stay the same.</string>
+    <string name="keyboard_geometry_column_stagger">Column stagger (step between columns): %1$d dp</string>
+    <string name="keyboard_geometry_column_stagger_summary">Zero aligns the grid. Positive values lower columns toward the left; negative values raise them. Keys remain upright.</string>
+    <string name="keyboard_geometry_column_stagger_reset">Reset column step to zero</string>
 </resources>

@@ -2,8 +2,6 @@ package com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry
 
 import android.content.SharedPreferences
 import com.kazumaproject.core.ui.geometry.KeyboardGeometry
-import com.kazumaproject.core.ui.geometry.KeyboardCurveHand
-import com.kazumaproject.core.ui.geometry.KeyboardCurveDirection
 import kotlin.math.roundToInt
 
 enum class GeometryKeyboard { QWERTY, TENKEY, SUMIRE }
@@ -78,11 +76,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         }
         return KeyboardGeometryPreference(
             geometry = KeyboardGeometry(
-                flickRotationFollowPercent = if (customLayoutId != null) int("flick_follow", 100) else 100,
-                curveDegrees = if (customLayoutId != null) int("curve", 0) else 0,
-                hand = if (customLayoutId == null) KeyboardCurveHand.RIGHT else runCatching { KeyboardCurveHand.valueOf(string("hand", "RIGHT")) }.getOrDefault(KeyboardCurveHand.RIGHT),
-                curveDirection = if (customLayoutId == null) KeyboardCurveDirection.DOWN else runCatching { KeyboardCurveDirection.valueOf(string("direction", "DOWN")) }.getOrDefault(KeyboardCurveDirection.DOWN),
-                autoHeight = customLayoutId == null || runCatching { preferences.getBoolean("${p}_auto_height", true) }.getOrDefault(true),
+                columnStaggerDp = if (customLayoutId != null) int("column_stagger_dp", 0) else 0,
                 splitPercent = if (keyboard == GeometryKeyboard.QWERTY) int("split", 0) else 0,
             ).normalized(),
             candidates = if (allowed) placement else GeometryCandidatePlacement.TOP,
@@ -146,11 +140,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         require(!customLayoutId.isNullOrBlank())
         val p = prefix(GeometryKeyboard.SUMIRE, landscape)
         val value = geometry.normalized()
-        preferences.edit().putInt("${p}_curve", value.curveDegrees)
-            .putInt("${p}_flick_follow", value.flickRotationFollowPercent)
-            .putString("${p}_hand", value.hand.name)
-            .putString("${p}_direction", value.curveDirection.name)
-            .putBoolean("${p}_auto_height", value.autoHeight).apply()
+        preferences.edit().putInt("${p}_column_stagger_dp", value.columnStaggerDp).apply()
     }
 
     fun resetCandidateDisplay(keyboard: GeometryKeyboard, landscape: Boolean) =

@@ -5,6 +5,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KeyboardGeometryMathTest {
+    @Test fun staggerNormalizesBothSignsAndRetiresCurveValues() {
+        assertTrue(KeyboardGeometry().isDefault)
+        assertEquals(32, KeyboardGeometry(columnStaggerDp = 100).normalized().columnStaggerDp)
+        assertEquals(-32, KeyboardGeometry(columnStaggerDp = -100).normalized().columnStaggerDp)
+        assertEquals(0, KeyboardGeometry(curveDegrees = 25).normalized().curveDegrees)
+        assertTrue(KeyboardGeometry(curveDegrees = 25).normalized().isDefault)
+        for (step in listOf(-20f, 0f, 20f)) {
+            val offsets = (0..4).map { KeyboardGeometryMath.columnOffset(it + .5f, step) }
+            for (i in 0..3) assertEquals(step, offsets[i] - offsets[i + 1], .001f)
+        }
+    }
+
     @Test fun curveIsFlatAtZeroAndMirrorsTheTangent() {
         assertEquals(KeyboardCurvePoint(0f, 0f), KeyboardGeometryMath.curve(50f, 100f, 0f, false))
         val right = KeyboardGeometryMath.curve(100f, 100f, 25f, false)

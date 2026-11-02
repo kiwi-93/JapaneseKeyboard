@@ -17,17 +17,18 @@ data class KeyboardGeometry(
     val hand: KeyboardCurveHand = KeyboardCurveHand.RIGHT,
     val autoHeight: Boolean = true,
     val curveDirection: KeyboardCurveDirection = KeyboardCurveDirection.DOWN,
-    val flickRotationFollowPercent: Int = 100,
+    val columnStaggerDp: Int = 0,
 ) {
     fun normalized() = copy(
         splitPercent = splitPercent.coerceIn(0, MAX_SPLIT_PERCENT),
-        curveDegrees = curveDegrees.coerceIn(0, MAX_CURVE_DEGREES),
-        flickRotationFollowPercent = flickRotationFollowPercent.coerceIn(0, 100),
+        curveDegrees = 0,
+        columnStaggerDp = columnStaggerDp.coerceIn(-MAX_COLUMN_STAGGER_DP, MAX_COLUMN_STAGGER_DP),
     )
 
-    val isDefault: Boolean get() = splitPercent <= 0 && curveDegrees <= 0
+    val isDefault: Boolean get() = splitPercent <= 0 && columnStaggerDp == 0
 
     companion object {
+        const val MAX_COLUMN_STAGGER_DP = 32
         const val MAX_SPLIT_PERCENT = 40
         const val MAX_CURVE_DEGREES = 25
     }
@@ -37,6 +38,9 @@ data class KeyboardCurvePoint(val offsetY: Float, val rotationDegrees: Float)
 
 /** Geometry only. This code is used by IME views, not by the settings preview. */
 object KeyboardGeometryMath {
+    /** Positive step lowers columns towards the left; grid centers also support half columns and spans. */
+    fun columnOffset(columnCenter: Float, stepPx: Float): Float = -columnCenter * stepPx
+
     /**
      * A circular arc whose tangent is horizontal at the outside edge and reaches [degrees]
      * at the inside edge. [distance] and [span] are measured from that outside edge;

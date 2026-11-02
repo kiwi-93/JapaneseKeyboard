@@ -31,8 +31,6 @@ import android.widget.PopupMenu
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.ScrollView
-import com.kazumaproject.core.ui.geometry.KeyboardCurveHand
-import com.kazumaproject.core.ui.geometry.KeyboardCurveDirection
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
@@ -332,12 +330,12 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
         align.setOnCheckedChangeListener { _, id -> updateSize(size.copy(positionEnd = id == 2), true) }
         body.addView(align)
         if (type == PreviewKeyboard.CUSTOM && customLayout != null) {
-            buildCustomShapeBody()
+            buildCustomStaggerBody()
             buildCustomCandidateBody()
         }
     }
 
-    private fun buildCustomShapeBody() {
+    private fun buildCustomStaggerBody() {
         val ctx = requireContext()
         fun slider(title: Int, current: Int, maximum: Int, minimum: Int = 0, viewId: Int = View.NO_ID, changed: (Int) -> Unit) {
             val caption = TextView(ctx).apply { text = getString(title, current); setPadding(0, dp(8), 0, 0) }
@@ -356,28 +354,19 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
                 })
             })
         }
-        fun choices(heading: Int, options: List<Pair<Int, Int>>, checked: Int, viewId: Int = View.NO_ID, action: (Int) -> Unit) {
-            body.addView(label(heading)); body.addView(radio(options, true).apply { id = viewId; check(checked); setOnCheckedChangeListener { _, id -> action(id) } })
+        val limit = com.kazumaproject.core.ui.geometry.KeyboardGeometry.MAX_COLUMN_STAGGER_DP
+        slider(R.string.keyboard_geometry_column_stagger, geometry.geometry.columnStaggerDp, limit, -limit,
+            viewId = R.id.keyboard_geometry_column_stagger) {
+            saveGeometry(geometry.copy(geometry = geometry.geometry.copy(columnStaggerDp = it)))
         }
-        slider(R.string.keyboard_geometry_curve, geometry.geometry.curveDegrees, 25) {
-            saveGeometry(geometry.copy(geometry = geometry.geometry.copy(curveDegrees = it)))
-        }
-        slider(R.string.keyboard_geometry_flick_follow, geometry.geometry.flickRotationFollowPercent, 100,
-            viewId = R.id.keyboard_geometry_flick_follow) {
-            saveGeometry(geometry.copy(geometry = geometry.geometry.copy(flickRotationFollowPercent = it)))
-        }
-        body.addView(TextView(ctx).apply { setText(R.string.keyboard_geometry_flick_follow_summary) })
-        choices(R.string.keyboard_geometry_curve_direction, listOf(1 to R.string.keyboard_geometry_curve_down, 2 to R.string.keyboard_geometry_curve_up),
-            if (geometry.geometry.curveDirection == KeyboardCurveDirection.UP) 2 else 1) {
-            saveGeometry(geometry.copy(geometry = geometry.geometry.copy(curveDirection = if (it == 2) KeyboardCurveDirection.UP else KeyboardCurveDirection.DOWN)))
-        }
-        if (type != PreviewKeyboard.QWERTY) choices(R.string.keyboard_geometry_hand,
-            listOf(1 to R.string.keyboard_geometry_right_hand, 2 to R.string.keyboard_geometry_left_hand),
-            if (geometry.geometry.hand == KeyboardCurveHand.LEFT) 2 else 1) {
-            saveGeometry(geometry.copy(geometry = geometry.geometry.copy(hand = if (it == 2) KeyboardCurveHand.LEFT else KeyboardCurveHand.RIGHT)))
-        }
-        choices(R.string.keyboard_geometry_height, listOf(1 to R.string.keyboard_geometry_height_auto, 2 to R.string.keyboard_geometry_height_fixed),
-            if (geometry.geometry.autoHeight) 1 else 2) { saveGeometry(geometry.copy(geometry = geometry.geometry.copy(autoHeight = it == 1))) }
+        body.addView(TextView(ctx).apply { setText(R.string.keyboard_geometry_column_stagger_summary) })
+        body.addView(MaterialButton(ctx).apply {
+            setText(R.string.keyboard_geometry_column_stagger_reset)
+            setOnClickListener {
+                saveGeometry(geometry.copy(geometry = geometry.geometry.copy(columnStaggerDp = 0)))
+                buildBody()
+            }
+        })
     }
 
     private fun buildCustomCandidateBody() {

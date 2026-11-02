@@ -1076,7 +1076,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             }
             if (key == null || key.startsWith("keyboard_geometry_") || key.startsWith(IndependentKeyboardSizePreferences.KEY_PREFIX)) {
                 runOnMainThread {
-                    if (key == null || key.startsWith(IndependentKeyboardSizePreferences.KEY_PREFIX) || key.endsWith("_curve") || key.endsWith("_split") || key.endsWith("_hand") || key.endsWith("_curve_direction")) {
+                    if (key == null || key.startsWith(IndependentKeyboardSizePreferences.KEY_PREFIX) || key.endsWith("_column_stagger_dp") || key.endsWith("_curve") || key.endsWith("_split") || key.endsWith("_hand") || key.endsWith("_curve_direction")) {
                         geometryRequiredHeights.clear()
                     }
                     // A settings save updates several keys. Coalesce notifications so the
@@ -11793,7 +11793,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             lastAppliedFloatingEditWidthPx = widthPx
             sizeChanged = true
         }
-        if (popupWindow.isShowing && geometry.curveDegrees > 0 && geometry.autoHeight &&
+        if (popupWindow.isShowing && geometry.columnStaggerDp != 0 && geometry.autoHeight &&
             previousContainerHeight > 0 && previousContainerHeight != heightPx) {
             // Growing the body should move its top, not the bottom edge. Clamp the
             // resulting window to the safe area after its new contents are measured.
@@ -20824,7 +20824,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
     }
 
     private fun geometryHeight(view: View?, value: KeyboardGeometry, baseHeight: Int, chromeHeight: Int = 0): Int {
-        if (view == null || value.curveDegrees == 0 || !value.autoHeight) return baseHeight
+        if (view == null || value.columnStaggerDp == 0 || !value.autoHeight) return baseHeight
         val available = (resources.displayMetrics.heightPixels - systemBottomInset - chromeHeight).coerceAtLeast(baseHeight)
         return (geometryRequiredHeights[view] ?: baseHeight).coerceIn(baseHeight, available)
     }

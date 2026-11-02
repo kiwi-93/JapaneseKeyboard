@@ -1,5 +1,5 @@
 <resources>
-    <item name="keyboard_geometry_flick_follow" type="id" />
+    <item name="keyboard_geometry_column_stagger" type="id" />
     <item name="keyboard_geometry_candidate_width" type="id" />
     <item name="keyboard_geometry_candidate_order" type="id" />
     <item name="keyboard_geometry_candidate_direction" type="id" />

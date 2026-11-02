@@ -1,6 +1,5 @@
 package com.kazumaproject.custom_keyboard.controller
 
-import com.kazumaproject.custom_keyboard.view.flickInputRotationDegrees
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
@@ -166,7 +165,7 @@ class StandardFlickInputController(
 
             MotionEvent.ACTION_MOVE -> {
                 val (dx, dy) = KeyboardGeometryMath.localDelta(
-                    event.rawX - initialTouchX, event.rawY - initialTouchY, anchorView?.flickInputRotationDegrees() ?: 0f
+                    event.rawX - initialTouchX, event.rawY - initialTouchY, anchorView?.rotation ?: 0f
                 )
                 val direction = calculateDirection(dx, dy)
                 segmentedDrawable?.highlightDirection = direction
@@ -181,7 +180,7 @@ class StandardFlickInputController(
             MotionEvent.ACTION_UP -> {
                 segmentedDrawable?.highlightDirection = null
                 val (dx, dy) = KeyboardGeometryMath.localDelta(
-                    event.rawX - initialTouchX, event.rawY - initialTouchY, anchorView?.flickInputRotationDegrees() ?: 0f
+                    event.rawX - initialTouchX, event.rawY - initialTouchY, anchorView?.rotation ?: 0f
                 )
                 val finalDirection = calculateDirection(dx, dy)
                 characterMap[finalDirection]?.let {

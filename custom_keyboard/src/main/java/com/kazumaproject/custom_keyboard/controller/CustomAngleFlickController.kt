@@ -1,6 +1,5 @@
 package com.kazumaproject.custom_keyboard.controller
 
-import com.kazumaproject.custom_keyboard.view.flickInputRotationDegrees
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.Gravity
@@ -378,7 +377,7 @@ class CustomAngleFlickController(
 
     private fun calculateDirection(currentX: Float, currentY: Float): CircularFlickDirection {
         val (dx, dy) = KeyboardGeometryMath.localDelta(
-            currentX - initialTouchX, currentY - initialTouchY, anchorView?.flickInputRotationDegrees() ?: 0f
+            currentX - initialTouchX, currentY - initialTouchY, anchorView?.rotation ?: 0f
         )
         val config = activeGestureConfig ?: gestureConfigSource.snapshot()
         if (

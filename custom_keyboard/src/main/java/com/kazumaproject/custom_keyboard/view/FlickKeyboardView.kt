@@ -230,7 +230,7 @@ class FlickKeyboardView @JvmOverloads constructor(
         IdentityHashMap<AutoSizeButton, AutoSizeButton.FlickGuideLabels>()
     private var currentLayout: KeyboardLayout? = null
 
-    // Used only for the built-in Sumire layout. User-defined layouts keep the legacy path.
+    // Custom layout presentation; the default leaves the original grid unchanged.
     private var geometry = KeyboardGeometry()
     private var geometryBaseHeight = 0
     private var geometryHeightListener: ((Int) -> Unit)? = null
@@ -266,9 +266,8 @@ class FlickKeyboardView @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         val base = if (!geometry.isDefault && geometryBaseHeight > 0 && height > geometryBaseHeight) geometryBaseHeight else height
         super.onLayout(changed, left, top, right, top + base)
-        keyInfos.forEach { it.view.setFlickRotationFollowPercent(geometry.flickRotationFollowPercent) }
         if (geometry.isDefault) return
-        val items = keyInfos.map { KeyboardGeometryItem(it.view, KeyboardGeometryGroup.SINGLE) }
+        val items = keyInfos.map { KeyboardGeometryItem(it.view, KeyboardGeometryGroup.SINGLE, columnCenter = it.columnCenter) }
         val result = KeyboardViewGeometry.apply(this, items, geometry, qwerty = false, baselineHeight = base.toFloat())
         val required = kotlin.math.ceil(result.requiredHeightPx.toDouble()).toInt().coerceAtLeast(base)
         if (required != lastRequiredGeometryHeight) {
@@ -295,7 +294,8 @@ class FlickKeyboardView @JvmOverloads constructor(
         var view: View,
         var keyData: KeyData,
         var controller: Any? = null,
-        val index: Int
+        val index: Int,
+        val columnCenter: Float,
     )
 
     private var themeMode: String = "default"
@@ -806,7 +806,9 @@ class FlickKeyboardView @JvmOverloads constructor(
         val controller = attachKeyBehavior(keyView, keyData)
         applyVisibleKeyFilter(keyView, keyData)
 
-        val info = KeyInfo(keyView, keyData, controller, index)
+        val units = if (currentLayout?.items?.isNotEmpty() == true) 2f else 1f
+        val columnCenter = (item.placement.columnUnits + item.placement.columnSpanUnits / 2f) / units
+        val info = KeyInfo(keyView, keyData, controller, index, columnCenter)
         keyInfos += info
         keyData.keyId?.let { id ->
             dynamicKeyMap[id] = info
@@ -3258,8 +3260,6 @@ class FlickKeyboardView @JvmOverloads constructor(
         val inverse = Matrix()
         if (!selected.matrix.invert(inverse)) return null
         val local = KeyboardViewGeometry.parentToLocal(selected, x, y) ?: return null
-        // Keep DOWN and visual hit testing fixed; change only subsequent movement axes.
-        inverse.postRotate(selected.rotation - selected.flickInputRotationDegrees(), local.first, local.second)
         return MotionTarget(
             view = selected, displayOriginX = 0f, displayOriginY = 0f,
             localOffsetX = if (hit == null) local.first.coerceIn(0f, selected.width - 1f) - local.first else 0f,

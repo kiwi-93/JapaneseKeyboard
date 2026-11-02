@@ -16,6 +16,7 @@ data class KeyboardGeometryItem(
     val view: View,
     val group: KeyboardGeometryGroup,
     val bounds: RectF = RectF(view.left.toFloat(), view.top.toFloat(), view.right.toFloat(), view.bottom.toFloat()),
+    val columnCenter: Float = 0f,
 )
 
 data class KeyboardGeometryResult(val splitGapPx: Float, val requiredHeightPx: Float)
@@ -61,6 +62,10 @@ object KeyboardViewGeometry {
         if (safe.isDefault) {
             reset(items)
             return KeyboardGeometryResult(0f, baselineHeight)
+        }
+
+        if (!qwerty && safe.columnStaggerDp != 0) {
+            return applyColumnStagger(owner, visible, safe.columnStaggerDp, baselineHeight)
         }
 
         val gap = if (qwerty) KeyboardGeometryMath.effectiveSplitGap(width, safe.splitPercent,
@@ -166,6 +171,31 @@ object KeyboardViewGeometry {
             view.translationY = targetY - (view.top + view.height / 2f)
         }
         return KeyboardGeometryResult(gap, desiredHeight)
+    }
+
+    private fun applyColumnStagger(owner: ViewGroup, items: List<KeyboardGeometryItem>, stepDp: Int,
+        baselineHeight: Float): KeyboardGeometryResult {
+        val step = stepDp * owner.resources.displayMetrics.density
+        val top = items.minOf { it.bounds.top }.coerceAtLeast(0f)
+        val bottomPadding = (baselineHeight - items.maxOf { it.bounds.bottom }).coerceAtLeast(0f)
+        fun offset(item: KeyboardGeometryItem) = KeyboardGeometryMath.columnOffset(item.columnCenter, step)
+        val minY = items.minOf { it.bounds.top + offset(it) }
+        val maxY = items.maxOf { it.bounds.bottom + offset(it) }
+        val extent = (maxY - minY).coerceAtLeast(1f)
+        val desired = maxOf(baselineHeight, extent + top + bottomPadding)
+        val fit = min(1f, (owner.height - top - bottomPadding).coerceAtLeast(1f) / extent)
+        items.forEach { item ->
+            val view = item.view
+            val y = top + (item.bounds.centerY() + offset(item) - minY) * fit
+            view.pivotX = view.width / 2f
+            view.pivotY = view.height / 2f
+            view.rotation = 0f
+            view.scaleX = item.bounds.width() / view.width
+            view.scaleY = item.bounds.height() / view.height * fit
+            view.translationX = item.bounds.centerX() - (view.left + view.width / 2f)
+            view.translationY = y - (view.top + view.height / 2f)
+        }
+        return KeyboardGeometryResult(0f, desired)
     }
 
     private fun intersects(a: Placed, b: Placed, factor: Float): Boolean {

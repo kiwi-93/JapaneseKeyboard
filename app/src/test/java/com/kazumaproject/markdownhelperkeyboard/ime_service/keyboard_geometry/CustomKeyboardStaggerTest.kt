@@ -20,15 +20,14 @@ import org.robolectric.util.ReflectionHelpers
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class CustomKeyboardCurveTest {
+class CustomKeyboardStaggerTest {
     private val context = ContextThemeWrapper(ApplicationProvider.getApplicationContext<Context>(), R.style.Theme_MarkdownKeyboard)
     private val prefs get() = PreferenceManager.getDefaultSharedPreferences(context)
 
     @Test fun shapePersistsPerLayoutAndOrientationWithoutChangingSizeOrCandidates() {
         prefs.edit().clear().commit()
         val a = KeyboardGeometryPreferences(prefs, "a")
-        val shape = KeyboardGeometry(curveDegrees = 20, hand = KeyboardCurveHand.LEFT,
-            curveDirection = KeyboardCurveDirection.UP, autoHeight = false)
+        val shape = KeyboardGeometry(columnStaggerDp = -20)
         a.saveCustomShape(false, shape)
         assertEquals(shape, KeyboardGeometryPreferences(prefs, "a").read(GeometryKeyboard.SUMIRE, false).geometry)
         assertEquals(KeyboardGeometry(), a.read(GeometryKeyboard.SUMIRE, true).geometry)
@@ -36,48 +35,25 @@ class CustomKeyboardCurveTest {
         assertEquals(KeyboardGeometry(), KeyboardGeometryPreferences(prefs).read(GeometryKeyboard.SUMIRE, false).geometry)
         a.saveCandidateDisplay(GeometryKeyboard.SUMIRE, false, KeyboardGeometryPreference())
         assertEquals(shape, a.read(GeometryKeyboard.SUMIRE, false).geometry)
-        a.saveCustomShape(false, shape.copy(curveDegrees = 100))
-        assertEquals(25, a.read(GeometryKeyboard.SUMIRE, false).geometry.curveDegrees)
+        a.saveCustomShape(false, shape.copy(columnStaggerDp = 100))
+        assertEquals(32, a.read(GeometryKeyboard.SUMIRE, false).geometry.columnStaggerDp)
         a.saveCustomShape(false, KeyboardGeometry())
         assertEquals(KeyboardGeometry(), a.read(GeometryKeyboard.SUMIRE, false).geometry)
     }
 
-    @Test fun followPercentIsEditableAndScopedWithoutChangingTheCurveOrCandidates() {
-        prefs.edit().clear().commit()
-        val store = KeyboardGeometryPreferences(prefs, "edited")
-        assertEquals(100, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
-        store.saveCustomShape(false, KeyboardGeometry(curveDegrees = 20))
-        store.saveCandidateDisplay(GeometryKeyboard.SUMIRE, false, KeyboardGeometryPreference(candidates = GeometryCandidatePlacement.LEFT))
-        val fragment = spy(UnifiedKeyboardSettingsFragment())
-        doReturn(context).`when`(fragment).requireContext()
-        val body = LinearLayout(context)
-        ReflectionHelpers.setField(fragment, "body", body)
-        ReflectionHelpers.setField(fragment, "selectedCustomId", "edited")
-        ReflectionHelpers.setField(fragment, "geometry", store.read(GeometryKeyboard.SUMIRE, false))
-        ReflectionHelpers.callInstanceMethod<Unit>(fragment, "buildCustomShapeBody")
-        val slider = body.findViewById<SeekBar>(R.id.keyboard_geometry_flick_follow)
-        assertEquals(100, slider.progress)
-        for (percent in listOf(0, 50, 100)) {
-            ReflectionHelpers.getField<SeekBar.OnSeekBarChangeListener>(slider, "mOnSeekBarChangeListener")
-                .onProgressChanged(slider, percent, true)
-            assertEquals(percent, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
-            assertEquals(20, store.read(GeometryKeyboard.SUMIRE, false).geometry.curveDegrees)
-            assertEquals(GeometryCandidatePlacement.LEFT, store.read(GeometryKeyboard.SUMIRE, false).candidates)
-        }
-        store.saveCustomShape(false, KeyboardGeometry(curveDegrees = 20, flickRotationFollowPercent = 50))
-        assertEquals(50, KeyboardGeometryPreferences(prefs, "edited").read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
-        assertEquals(100, store.read(GeometryKeyboard.SUMIRE, true).geometry.flickRotationFollowPercent)
-        assertEquals(100, KeyboardGeometryPreferences(prefs, "other").read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
-        store.saveCustomShape(false, KeyboardGeometry(flickRotationFollowPercent = -10))
-        assertEquals(0, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
-        store.saveCustomShape(false, KeyboardGeometry(flickRotationFollowPercent = 110))
-        assertEquals(100, store.read(GeometryKeyboard.SUMIRE, false).geometry.flickRotationFollowPercent)
+    @Test fun legacyCurveSettingsAreIgnoredAndStaggerDefaultsToAlignedGrid() {
+        prefs.edit().clear().putInt("keyboard_geometry_custom_old_portrait_curve", 25)
+            .putInt("keyboard_geometry_custom_old_portrait_flick_follow", 50)
+            .putString("keyboard_geometry_custom_old_portrait_hand", "LEFT")
+            .putString("keyboard_geometry_custom_old_portrait_direction", "UP")
+            .putBoolean("keyboard_geometry_custom_old_portrait_auto_height", false).commit()
+        assertEquals(KeyboardGeometry(), KeyboardGeometryPreferences(prefs, "old").read(GeometryKeyboard.SUMIRE, false).geometry)
     }
 
-    @Test fun candidateControlsPersistPerLayoutAndOrientationAndKeepTheCurve() {
+    @Test fun candidateControlsPersistPerLayoutAndOrientationAndKeepTheStagger() {
         prefs.edit().clear().commit()
         val store = KeyboardGeometryPreferences(prefs, "edited")
-        val shape = KeyboardGeometry(curveDegrees = 20)
+        val shape = KeyboardGeometry(columnStaggerDp = 20)
         store.saveCustomShape(false, shape)
         fun editor(): Pair<UnifiedKeyboardSettingsFragment, LinearLayout> {
             val fragment = spy(UnifiedKeyboardSettingsFragment())
@@ -111,7 +87,7 @@ class CustomKeyboardCurveTest {
         assertEquals(GeometryCandidatePlacement.TOP, ReflectionHelpers.getField<KeyboardGeometryPreference>(fragment, "geometry").candidates)
     }
 
-    @Test fun customPreviewReservesCandidateSpaceOnEitherSideWhileKeepingCurvature() {
+    @Test fun customPreviewReservesCandidateSpaceOnEitherSideWhileKeepingStagger() {
         com.kazumaproject.markdownhelperkeyboard.setting_activity.AppPreference.init(context)
         val activity = org.robolectric.Robolectric.buildActivity(android.app.Activity::class.java).setup().get()
         activity.setTheme(R.style.Theme_MarkdownKeyboard)
@@ -120,11 +96,11 @@ class CustomKeyboardCurveTest {
             keys = listOf(com.kazumaproject.custom_keyboard.data.KeyData("delete", 0, 0, false, isSpecialKey = true, drawableResId = com.kazumaproject.core.R.drawable.backspace_24px),
                 com.kazumaproject.custom_keyboard.data.KeyData("right", 0, 1, false, isSpecialKey = true, drawableResId = com.kazumaproject.core.R.drawable.baseline_arrow_right_alt_24)),
             flickKeyMaps = emptyMap(), columnCount = 2, rowCount = 1)
-        fun preview(placement: GeometryCandidatePlacement): com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.keyboard_geometry.GeometryPreviewSnapshot {
+        fun preview(placement: GeometryCandidatePlacement, step: Int = 20, alignEnd: Boolean = false, width: Int = 100): com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.keyboard_geometry.GeometryPreviewSnapshot {
             val view = com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.keyboard_geometry.GeometryPreview(
                 previewContext, com.kazumaproject.markdownhelperkeyboard.setting_activity.ui.keyboard_geometry.PreviewKeyboard.CUSTOM)
-            view.update(KeyboardGeometryPreference(geometry = KeyboardGeometry(curveDegrees = 20), candidates = placement,
-                sideCandidateWidthPercent = 35), false, 100, false,
+            view.update(KeyboardGeometryPreference(geometry = KeyboardGeometry(columnStaggerDp = step), candidates = placement,
+                sideCandidateWidthPercent = 35), false, width, alignEnd,
                 com.kazumaproject.markdownhelperkeyboard.setting_activity.keyboard_size.IndependentKeyboardSize(), layout)
             view.measure(android.view.View.MeasureSpec.makeMeasureSpec(480, android.view.View.MeasureSpec.EXACTLY),
                 android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED))
@@ -137,14 +113,25 @@ class CustomKeyboardCurveTest {
             val side = preview(placement)
             assertEquals(top.bodyWidth - sideWidth, side.bodyWidth, 1f)
             assertEquals(top.bodyLeft + if (placement == GeometryCandidatePlacement.LEFT) sideWidth else 0f, side.bodyLeft, 1f)
-            assertTrue(side.keys.any { kotlin.math.abs(it.angle) > 0f })
+            assertTrue(side.keys.all { it.angle == 0f })
+            assertTrue(side.keys[0].y > side.keys[1].y)
+        }
+        for (step in listOf(-20, 0, 20)) {
+            val left = preview(GeometryCandidatePlacement.TOP, step, false, 70)
+            val right = preview(GeometryCandidatePlacement.TOP, step, true, 70)
+            val expected = step * context.resources.displayMetrics.density
+            assertEquals(expected, left.keys[0].y - left.keys[1].y, .1f)
+            assertTrue(left.keys.all { it.angle == 0f })
+            assertEquals(left.bodyWidth, right.bodyWidth, .1f)
+            assertTrue(right.bodyLeft > left.bodyLeft)
+            assertEquals(left.keys.map { it.y }, right.keys.map { it.y })
         }
         activity.finish()
     }
 
-    @Test fun imeSelectsTheCurrentCustomLayoutsShapeInsteadOfSumire() {
+    @Test fun imeSelectsTheCurrentCustomLayoutsStaggerInsteadOfSumire() {
         prefs.edit().clear().commit()
-        KeyboardGeometryPreferences(prefs, "active").saveCustomShape(false, KeyboardGeometry(curveDegrees = 18))
+        KeyboardGeometryPreferences(prefs, "active").saveCustomShape(false, KeyboardGeometry(columnStaggerDp = 18))
         KeyboardGeometryPreferences(prefs, "active").saveCandidateDisplay(GeometryKeyboard.SUMIRE, false,
             KeyboardGeometryPreference(candidates = GeometryCandidatePlacement.LEFT, sideCandidateWidthPercent = 35))
         val service = com.kazumaproject.markdownhelperkeyboard.ime_service.IMEService()
@@ -159,30 +146,32 @@ class CustomKeyboardCurveTest {
         assertEquals(GeometryKeyboard.SUMIRE,
             ReflectionHelpers.callInstanceMethod<GeometryKeyboard>(service, "geometryKeyboardForMode", mode))
         val store = ReflectionHelpers.callInstanceMethod<KeyboardGeometryPreferences>(service, "geometryPreferencesForMode", mode)
-        assertEquals(18, store.read(GeometryKeyboard.SUMIRE, false).geometry.curveDegrees)
+        assertEquals(18, store.read(GeometryKeyboard.SUMIRE, false).geometry.columnStaggerDp)
         assertEquals(GeometryCandidatePlacement.LEFT, store.read(GeometryKeyboard.SUMIRE, false).candidates)
         assertEquals(35, store.read(GeometryKeyboard.SUMIRE, false).sideCandidateWidthPercent)
         assertEquals(0, KeyboardGeometryPreferences(prefs).read(GeometryKeyboard.SUMIRE, false).geometry.curveDegrees)
     }
 
-    @Test fun originalShapeControlsSaveCustomLayoutAndUpdatePreviewState() {
+    @Test fun signedStepControlSavesBothDirectionsAndZeroWithoutChangingCandidates() {
         prefs.edit().clear().commit()
+        val store = KeyboardGeometryPreferences(prefs, "edited")
+        store.saveCandidateDisplay(GeometryKeyboard.SUMIRE, false, KeyboardGeometryPreference(candidates = GeometryCandidatePlacement.RIGHT))
         val fragment = spy(UnifiedKeyboardSettingsFragment())
         doReturn(context).`when`(fragment).requireContext()
         val body = LinearLayout(context)
         ReflectionHelpers.setField(fragment, "body", body)
         ReflectionHelpers.setField(fragment, "selectedCustomId", "edited")
-        ReflectionHelpers.callInstanceMethod<Unit>(fragment, "buildCustomShapeBody")
-        val slider = (0 until body.childCount).map { body.getChildAt(it) }.filterIsInstance<SeekBar>().first()
-        ReflectionHelpers.getField<SeekBar.OnSeekBarChangeListener>(slider, "mOnSeekBarChangeListener")
-            .onProgressChanged(slider, 20, true)
-        val groups = (0 until body.childCount).map { body.getChildAt(it) }.filterIsInstance<RadioGroup>()
-        groups.forEach { it.check(2) }
-        val shape = KeyboardGeometryPreferences(prefs, "edited").read(GeometryKeyboard.SUMIRE, false).geometry
-        assertEquals(20, shape.curveDegrees)
-        assertEquals(KeyboardCurveHand.LEFT, shape.hand)
-        assertEquals(KeyboardCurveDirection.UP, shape.curveDirection)
-        assertFalse(shape.autoHeight)
-        assertEquals(shape, ReflectionHelpers.getField<KeyboardGeometryPreference>(fragment, "geometry").geometry)
+        ReflectionHelpers.setField(fragment, "geometry", store.read(GeometryKeyboard.SUMIRE, false))
+        ReflectionHelpers.callInstanceMethod<Unit>(fragment, "buildCustomStaggerBody")
+        val slider = body.findViewById<SeekBar>(R.id.keyboard_geometry_column_stagger)
+        assertEquals(32, slider.progress)
+        for (step in listOf(-32, -12, 0, 12, 32)) {
+            ReflectionHelpers.getField<SeekBar.OnSeekBarChangeListener>(slider, "mOnSeekBarChangeListener")
+                .onProgressChanged(slider, step + 32, true)
+            assertEquals(step, store.read(GeometryKeyboard.SUMIRE, false).geometry.columnStaggerDp)
+            assertEquals(GeometryCandidatePlacement.RIGHT, store.read(GeometryKeyboard.SUMIRE, false).candidates)
+        }
+        store.saveCustomShape(false, KeyboardGeometry(columnStaggerDp = -100))
+        assertEquals(-32, store.read(GeometryKeyboard.SUMIRE, false).geometry.columnStaggerDp)
     }
 }
