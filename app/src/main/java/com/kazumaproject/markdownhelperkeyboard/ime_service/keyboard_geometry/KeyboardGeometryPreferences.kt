@@ -2,6 +2,8 @@ package com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry
 
 import android.content.SharedPreferences
 import com.kazumaproject.core.ui.geometry.KeyboardGeometry
+import com.kazumaproject.core.ui.geometry.KeyboardCurveHand
+import com.kazumaproject.core.ui.geometry.KeyboardCurveDirection
 import kotlin.math.roundToInt
 
 enum class GeometryKeyboard { QWERTY, TENKEY, SUMIRE }
@@ -61,9 +63,9 @@ object SideCandidateSizing {
 }
 
 /** Separate keys per keyboard and screen orientation; legacy backups use default values. */
-class KeyboardGeometryPreferences(private val preferences: SharedPreferences) {
+class KeyboardGeometryPreferences(private val preferences: SharedPreferences, private val customLayoutId: String? = null) {
     private fun prefix(keyboard: GeometryKeyboard, landscape: Boolean): String =
-        "keyboard_geometry_${keyboard.name.lowercase()}_${if (landscape) "landscape" else "portrait"}"
+        "keyboard_geometry_${customLayoutId?.let { "custom_$it" } ?: keyboard.name.lowercase()}_${if (landscape) "landscape" else "portrait"}"
 
     fun read(keyboard: GeometryKeyboard, landscape: Boolean): KeyboardGeometryPreference {
         val p = prefix(keyboard, landscape)
@@ -76,6 +78,10 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences) {
         }
         return KeyboardGeometryPreference(
             geometry = KeyboardGeometry(
+                curveDegrees = if (customLayoutId != null) int("curve", 0) else 0,
+                hand = if (customLayoutId == null) KeyboardCurveHand.RIGHT else runCatching { KeyboardCurveHand.valueOf(string("hand", "RIGHT")) }.getOrDefault(KeyboardCurveHand.RIGHT),
+                curveDirection = if (customLayoutId == null) KeyboardCurveDirection.DOWN else runCatching { KeyboardCurveDirection.valueOf(string("direction", "DOWN")) }.getOrDefault(KeyboardCurveDirection.DOWN),
+                autoHeight = customLayoutId == null || runCatching { preferences.getBoolean("${p}_auto_height", true) }.getOrDefault(true),
                 splitPercent = if (keyboard == GeometryKeyboard.QWERTY) int("split", 0) else 0,
             ).normalized(),
             candidates = if (allowed) placement else GeometryCandidatePlacement.TOP,
@@ -133,6 +139,16 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences) {
     fun saveQwertyGap(landscape: Boolean, percent: Int) {
         val normalized = KeyboardGeometry(splitPercent = percent).normalized().splitPercent
         preferences.edit().putInt("${prefix(GeometryKeyboard.QWERTY, landscape)}_split", normalized).apply()
+    }
+
+    fun saveCustomShape(landscape: Boolean, geometry: KeyboardGeometry) {
+        require(!customLayoutId.isNullOrBlank())
+        val p = prefix(GeometryKeyboard.SUMIRE, landscape)
+        val value = geometry.normalized()
+        preferences.edit().putInt("${p}_curve", value.curveDegrees)
+            .putString("${p}_hand", value.hand.name)
+            .putString("${p}_direction", value.curveDirection.name)
+            .putBoolean("${p}_auto_height", value.autoHeight).apply()
     }
 
     fun resetCandidateDisplay(keyboard: GeometryKeyboard, landscape: Boolean) =

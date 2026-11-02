@@ -11406,6 +11406,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
                 )
                 syncCustomKeyboardTogglePresentation(flickView)
                 refreshBaselineInputBehaviorForCurrentKeyboard("custom layout input mode loaded")
+                mainHandler.post(refreshGeometryPreference)
             }
         }
     }
@@ -11741,7 +11742,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             null -> null
         }
         val geometry = geometryType?.let {
-            keyboardGeometryPreferences.read(it, resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE).geometry
+            geometryPreferencesForMode(mode).read(it, resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE).geometry
         } ?: KeyboardGeometry()
         listOf(floatingView.keyboardViewFloating, floatingView.customLayoutFloating, floatingView.qwertyViewFloating).forEach { view ->
             val active = view === activeGeometryView
@@ -11814,7 +11815,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             val containerWidth = floatingView.floatingKeyboardContainer.width
             val densityNow = resources.displayMetrics.density
             val candidateGeometry = geometryKeyboardForCurrentMode()?.let {
-                keyboardGeometryPreferences.read(it, resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
+                geometryPreferencesForMode().read(it, resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
             }
             val placement = candidateGeometry?.candidates ?: GeometryCandidatePlacement.TOP
             val sideWidth = SideCandidateSizing.width(containerWidth, densityNow,
@@ -15264,6 +15265,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
                 setCustomLayoutOnAvailableSurfaces(finalLayout)
                 syncCustomKeyboardTogglePresentationOnAvailableSurfaces()
                 refreshBaselineInputBehaviorForCurrentKeyboard("custom layout input mode loaded")
+                mainHandler.post(refreshGeometryPreference)
             }
         }
     }
@@ -20733,7 +20735,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             detachGeometryCandidates()
             return
         }
-        val config = keyboardGeometryPreferences.read(type, resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
+        val config = geometryPreferencesForMode().read(type, resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
         if (config.candidates == GeometryCandidatePlacement.TOP) { detachGeometryCandidates(); return }
         val floating = isKeyboardFloatingMode == true
         val main = mainLayoutBinding ?: return
@@ -20797,9 +20799,16 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
         }
     }
 
+    private fun geometryPreferencesForMode(mode: TenKeyQWERTYMode = qwertyMode.value): KeyboardGeometryPreferences {
+        if (sizeEditTarget(mode) != KeyboardLayoutEditTarget.Custom) return keyboardGeometryPreferences
+        val layout = if (mode == TenKeyQWERTYMode.Number) numberUsageCustomKeyboardLayoutOrNull()
+            else selectedCustomKeyboardLayoutOrNull()
+        return KeyboardGeometryPreferences(androidx.preference.PreferenceManager.getDefaultSharedPreferences(this), layout?.stableId)
+    }
+
     private fun geometryKeyboardForCurrentMode(): GeometryKeyboard? = geometryKeyboardForMode(qwertyMode.value)
 
-    private fun geometryKeyboardForMode(mode: TenKeyQWERTYMode): GeometryKeyboard? = when (mode) {
+    private fun geometryKeyboardForMode(mode: TenKeyQWERTYMode): GeometryKeyboard? = if (sizeEditTarget(mode) == KeyboardLayoutEditTarget.Custom) GeometryKeyboard.SUMIRE else when (mode) {
         TenKeyQWERTYMode.Default -> GeometryKeyboard.TENKEY
         TenKeyQWERTYMode.Sumire -> GeometryKeyboard.SUMIRE
         TenKeyQWERTYMode.TenKeyQWERTY, TenKeyQWERTYMode.TenKeyQWERTYRomaji -> GeometryKeyboard.QWERTY
@@ -20943,7 +20952,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             null -> null
         }
         val geometry = geometryType?.let {
-            keyboardGeometryPreferences.read(it, !isPortrait).geometry
+            geometryPreferencesForMode().read(it, !isPortrait).geometry
         } ?: KeyboardGeometry()
         listOf(mainView.keyboardView, mainView.customLayoutDefault, mainView.qwertyView).forEach { view ->
             val active = view === activeGeometryView
@@ -21075,7 +21084,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
                 dpToPx(prefs.keyboardMarginEnd)
             }
 
-        val candidateGeometry = geometryType?.let { keyboardGeometryPreferences.read(it, !isPortrait) }
+        val candidateGeometry = geometryType?.let { geometryPreferencesForMode().read(it, !isPortrait) }
         val placement = candidateGeometry?.candidates ?: GeometryCandidatePlacement.TOP
         val availableWidth = (screenWidth - finalStartMargin - finalEndMargin).coerceAtLeast(0)
         val desiredWidth = if (configuredKeyboardWidth == ViewGroup.LayoutParams.MATCH_PARENT) availableWidth

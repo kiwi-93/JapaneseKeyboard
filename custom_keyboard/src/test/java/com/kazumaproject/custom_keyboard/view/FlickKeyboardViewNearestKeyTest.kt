@@ -36,12 +36,12 @@ import java.util.concurrent.TimeUnit
 class FlickKeyboardViewNearestKeyTest {
     private val actions = mutableListOf<KeyAction>()
 
-    @Test fun legacyCurvePreferenceKeepsStraightKeysTouchableAtTheirDisplayedCenters() {
+    @Test fun curvedSumireKeysReceiveTouchesAtTheirDisplayedCenters() {
         val view = keyboard()
         view.setSumireGeometry(KeyboardGeometry(curveDegrees = 20), 400)
         layout(view)
         val key = view.getChildAt(0)
-        assertEquals(0f, key.rotation, 0f)
+        assertTrue(key.rotation != 0f)
         val (x, y) = KeyboardViewGeometry.centerInParent(key)
         tap(view, x, y)
         assertEquals(listOf(KeyAction.Text("a")), actions)
