@@ -145,7 +145,7 @@ class TenKey(context: Context, attributeSet: AttributeSet) :
     private var lastRequiredGeometryHeight = 0
 
     fun setKeyboardGeometry(value: KeyboardGeometry, baseHeightPx: Int = 0, onRequiredHeight: ((Int) -> Unit)? = null) {
-        val next = value.copy(splitPercent = 0).normalized()
+        val next = value.copy(splitPercent = 0, curveDegrees = 0).normalized()
         if ((geometry.isDefault && next.isDefault) || (geometry == next && geometryBaseHeight == baseHeightPx)) {
             geometry = next
             geometryBaseHeight = baseHeightPx

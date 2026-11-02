@@ -123,7 +123,7 @@ class QWERTYKeyboardView @JvmOverloads constructor(
 
     /** Geometry is opt-in; the original view and input path are retained for the default. */
     fun setKeyboardGeometry(value: KeyboardGeometry, baseHeightPx: Int = 0, onRequiredHeight: ((Int) -> Unit)? = null) {
-        val normalized = value.normalized()
+        val normalized = value.copy(curveDegrees = 0).normalized()
         if ((geometry.isDefault && normalized.isDefault) || (geometry == normalized && geometryBaseHeight == baseHeightPx)) {
             geometry = normalized
             geometryBaseHeight = baseHeightPx
