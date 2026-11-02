@@ -305,7 +305,7 @@ internal class GeometryPreview(context: Context, private val keyboard: PreviewKe
         val end = endDp.coerceAtLeast(0) * density
         val available = (screenWidth - start - end).coerceAtLeast(1f)
         val requested = min(available, screenWidth * keyboardWidthPercent / 100f)
-        val side = if (keyboard in setOf(PreviewKeyboard.TENKEY, PreviewKeyboard.SUMIRE) && value.candidates != GeometryCandidatePlacement.TOP) {
+        val side = if (keyboard in setOf(PreviewKeyboard.TENKEY, PreviewKeyboard.SUMIRE, PreviewKeyboard.CUSTOM) && value.candidates != GeometryCandidatePlacement.TOP) {
             SideCandidateSizing.width(requested.roundToInt(), density, value.sideCandidateWidthPercent).toFloat()
         } else 0f
         val bodyWidth = (requested - side).coerceAtLeast(1f)

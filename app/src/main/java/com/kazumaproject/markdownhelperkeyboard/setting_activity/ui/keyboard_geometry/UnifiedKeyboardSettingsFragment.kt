@@ -331,7 +331,10 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
         align.check(if (size.positionEnd) 2 else 1)
         align.setOnCheckedChangeListener { _, id -> updateSize(size.copy(positionEnd = id == 2), true) }
         body.addView(align)
-        if (type == PreviewKeyboard.CUSTOM && customLayout != null) buildCustomShapeBody()
+        if (type == PreviewKeyboard.CUSTOM && customLayout != null) {
+            buildCustomShapeBody()
+            buildCustomCandidateBody()
+        }
     }
 
     private fun buildCustomShapeBody() {
@@ -370,6 +373,60 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
         }
         choices(R.string.keyboard_geometry_height, listOf(1 to R.string.keyboard_geometry_height_auto, 2 to R.string.keyboard_geometry_height_fixed),
             if (geometry.geometry.autoHeight) 1 else 2) { saveGeometry(geometry.copy(geometry = geometry.geometry.copy(autoHeight = it == 1))) }
+    }
+
+    private fun buildCustomCandidateBody() {
+        val ctx = requireContext()
+        fun save(next: KeyboardGeometryPreference) {
+            if (selectedCustomId == null) return
+            customGeometries().saveCandidateDisplay(GeometryKeyboard.SUMIRE, landscape, next)
+            geometry = next
+            updatePreview()
+        }
+        body.addView(label(R.string.keyboard_geometry_candidates))
+        val placement = radio(listOf(1 to R.string.keyboard_geometry_top,
+            3 to R.string.keyboard_geometry_left, 4 to R.string.keyboard_geometry_right), true).apply {
+            id = R.id.keyboard_geometry_candidate_placement
+            check(when (geometry.candidates) {
+                GeometryCandidatePlacement.LEFT -> 3
+                GeometryCandidatePlacement.RIGHT -> 4
+                else -> 1
+            })
+        }
+        body.addView(placement)
+        val widthControls = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+        val caption = TextView(ctx).apply {
+            text = getString(R.string.keyboard_geometry_candidate_width, geometry.sideCandidateWidthPercent)
+        }
+        widthControls.addView(caption)
+        widthControls.addView(SeekBar(ctx).apply {
+            id = R.id.keyboard_geometry_candidate_width
+            max = SideCandidateSizing.MAX_PERCENT - SideCandidateSizing.MIN_PERCENT
+            progress = geometry.sideCandidateWidthPercent - SideCandidateSizing.MIN_PERCENT
+            contentDescription = caption.text
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar?, value: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    val percent = value + SideCandidateSizing.MIN_PERCENT
+                    caption.text = getString(R.string.keyboard_geometry_candidate_width, percent)
+                    contentDescription = caption.text
+                    save(geometry.copy(sideCandidateWidthPercent = percent))
+                }
+                override fun onStartTrackingTouch(bar: SeekBar?) = Unit
+                override fun onStopTrackingTouch(bar: SeekBar?) = Unit
+            })
+        })
+        widthControls.isVisible = geometry.candidates in setOf(GeometryCandidatePlacement.LEFT, GeometryCandidatePlacement.RIGHT)
+        body.addView(widthControls)
+        placement.setOnCheckedChangeListener { _, id ->
+            val next = when (id) {
+                3 -> GeometryCandidatePlacement.LEFT
+                4 -> GeometryCandidatePlacement.RIGHT
+                else -> GeometryCandidatePlacement.TOP
+            }
+            widthControls.isVisible = next != GeometryCandidatePlacement.TOP
+            save(geometry.copy(candidates = next))
+        }
     }
 
     private fun editCard(id: Int, title: Int, description: Int, icon: Int, mode: SizeEditMode): View {
@@ -453,8 +510,8 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
             if (type == PreviewKeyboard.QWERTY && gap > 0) add(getString(R.string.keyboard_geometry_glide_disabled))
             if (type == PreviewKeyboard.QWERTY && gap < requested) add(getString(R.string.keyboard_geometry_gap_limited))
             if (type == PreviewKeyboard.QWERTY && geometry.candidates == GeometryCandidatePlacement.CENTER && gap < 96f * metrics.density) add(getString(R.string.keyboard_geometry_candidate_fallback))
-            if (type in listOf(PreviewKeyboard.TENKEY, PreviewKeyboard.SUMIRE) && geometry.candidates != GeometryCandidatePlacement.TOP && width < 256f * metrics.density) add(getString(R.string.keyboard_geometry_candidate_fallback))
-            if (type in listOf(PreviewKeyboard.TENKEY, PreviewKeyboard.SUMIRE) && geometry.candidates in setOf(GeometryCandidatePlacement.LEFT, GeometryCandidatePlacement.RIGHT)) {
+            if (type in listOf(PreviewKeyboard.TENKEY, PreviewKeyboard.SUMIRE, PreviewKeyboard.CUSTOM) && geometry.candidates != GeometryCandidatePlacement.TOP && width < 256f * metrics.density) add(getString(R.string.keyboard_geometry_candidate_fallback))
+            if (type in listOf(PreviewKeyboard.TENKEY, PreviewKeyboard.SUMIRE, PreviewKeyboard.CUSTOM) && geometry.candidates in setOf(GeometryCandidatePlacement.LEFT, GeometryCandidatePlacement.RIGHT)) {
                 val pixels = width.roundToInt()
                 val actual = SideCandidateSizing.width(pixels, metrics.density, geometry.sideCandidateWidthPercent)
                 val requestedSide = pixels * geometry.sideCandidateWidthPercent / 100
