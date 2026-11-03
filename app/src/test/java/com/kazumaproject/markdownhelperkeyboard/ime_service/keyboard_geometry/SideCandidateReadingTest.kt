@@ -52,7 +52,7 @@ class SideCandidateReadingTest {
         assertEquals(reading, view.readingTextView.text.toString())
         assertEquals(View.VISIBLE, view.visibility)
         assertEquals(Color.CYAN, view.readingTextView.currentTextColor)
-        assertTrue(view.readingTextView.textSize > 20f * context.resources.displayMetrics.scaledDensity)
+        assertEquals(12f * context.resources.displayMetrics.scaledDensity, view.readingTextView.textSize, .1f)
         assertTrue("textWidth=${view.readingTextView.width} viewport=${view.width}", view.readingTextView.width > view.width)
         assertTrue(view.scrollX > 0)
         view.scrollTo(0, 0)
@@ -198,6 +198,7 @@ class SideCandidateReadingTest {
                 val inactive = if (isFloating) main.sideCandidateReading else floating.sideCandidateReading
                 layout(active, height = 160)
                 assertEquals(32 * context.resources.displayMetrics.scaledDensity, active.readingTextView.textSize, .1f)
+                assertEquals(3, active.cursorOffset)
                 assertEquals("きょうは", active.readingTextView.text.toString())
                 assertEquals(View.VISIBLE, active.visibility)
                 assertEquals(View.GONE, inactive.visibility)

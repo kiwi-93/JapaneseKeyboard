@@ -51,7 +51,7 @@
     <string name="keyboard_geometry_column_stagger_summary">Zero aligns the grid. Positive values lower columns toward the left; negative values raise them. Keys remain upright.</string>
     <string name="keyboard_geometry_column_stagger_reset">Reset column step to zero</string>
     <string name="keyboard_geometry_reading_header">Show reading above the keyboard</string>
-    <string name="keyboard_geometry_reading_header_summary">Show the current unconverted text in large type above the keyboard while candidates are on either side.</string>
-    <string name="keyboard_geometry_reading_header_size">Reading text size (sp)</string>
-    <string name="keyboard_geometry_reading_header_size_value">Reading text size: %1$d sp</string>
+    <string name="keyboard_geometry_reading_header_summary">Show the reading above the keyboard with side candidates. Short readings are centered; longer readings shrink, then scroll to the cursor.</string>
+    <string name="keyboard_geometry_reading_header_size">Normal reading text size (sp)</string>
+    <string name="keyboard_geometry_reading_header_size_value">Normal reading text size: %1$d sp</string>
 </resources>

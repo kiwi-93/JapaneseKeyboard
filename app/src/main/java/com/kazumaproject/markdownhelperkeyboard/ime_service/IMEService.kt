@@ -20743,8 +20743,8 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
         val reading = if (eligible) inputString.value + stringInTail.get() else ""
         val color = if (reading.isNotEmpty()) resolveCandidatePanelColors().text else null
         val textSize = config?.sideCandidateReadingSizeSp ?: SideCandidateReadingSizing.DEFAULT_SP
-        mainLayoutBinding?.sideCandidateReading?.setReading(if (floating) "" else reading, color, textSize)
-        floatingKeyboardBinding?.sideCandidateReading?.setReading(if (floating) reading else "", color, textSize)
+        mainLayoutBinding?.sideCandidateReading?.setReading(if (floating) "" else reading, color, textSize, inputString.value.length)
+        floatingKeyboardBinding?.sideCandidateReading?.setReading(if (floating) reading else "", color, textSize, inputString.value.length)
     }
 
     private fun detachGeometryCandidates() {
