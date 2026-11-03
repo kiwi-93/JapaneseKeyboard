@@ -17,6 +17,7 @@ data class KeyboardGeometryPreference(
     val sideCandidateSpacingDp: Int = SideCandidateSizing.DEFAULT_SPACING_DP,
     val sideCandidateVerticalSpacingDp: Int = SideCandidateSizing.DEFAULT_VERTICAL_SPACING_DP,
     val centerCandidateSpacingDp: Int = 0,
+    val showReadingAboveSideCandidates: Boolean = false,
 )
 
 /** Size rules only; settings previews and IME views remain separate. */
@@ -80,6 +81,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
                 splitPercent = if (keyboard == GeometryKeyboard.QWERTY) int("split", 0) else 0,
             ).normalized(),
             candidates = if (allowed) placement else GeometryCandidatePlacement.TOP,
+            showReadingAboveSideCandidates = runCatching { preferences.getBoolean("${p}_reading_header", false) }.getOrDefault(false),
             sideCandidateWidthPercent = int("candidate_width_percent", SideCandidateSizing.DEFAULT_PERCENT)
                 .coerceIn(SideCandidateSizing.MIN_PERCENT, SideCandidateSizing.MAX_PERCENT),
             sideCandidateVerticalText = runCatching { preferences.getBoolean("${p}_candidate_vertical_text", false) }.getOrDefault(false),
@@ -103,6 +105,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         } ?: GeometryCandidatePlacement.TOP
         val editor = preferences.edit().putInt("${p}_split", if (keyboard == GeometryKeyboard.QWERTY) value.splitPercent else 0)
             .putInt("${p}_candidate_width_percent", preference.sideCandidateWidthPercent.coerceIn(SideCandidateSizing.MIN_PERCENT, SideCandidateSizing.MAX_PERCENT))
+            .putBoolean("${p}_reading_header", preference.showReadingAboveSideCandidates)
             .putBoolean("${p}_candidate_vertical_text", preference.sideCandidateVerticalText)
             .putBoolean("${p}_candidate_right_to_left", preference.sideCandidateRightToLeft)
             .putBoolean("${p}_candidate_wrap_long_text", preference.sideCandidateWrapLongText)
@@ -121,6 +124,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         } ?: GeometryCandidatePlacement.TOP
         preferences.edit()
             .putInt("${p}_candidate_width_percent", preference.sideCandidateWidthPercent.coerceIn(SideCandidateSizing.MIN_PERCENT, SideCandidateSizing.MAX_PERCENT))
+            .putBoolean("${p}_reading_header", preference.showReadingAboveSideCandidates)
             .putBoolean("${p}_candidate_vertical_text", preference.sideCandidateVerticalText)
             .putBoolean("${p}_candidate_right_to_left", preference.sideCandidateRightToLeft)
             .putBoolean("${p}_candidate_wrap_long_text", preference.sideCandidateWrapLongText)

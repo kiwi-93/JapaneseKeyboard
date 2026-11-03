@@ -66,6 +66,13 @@ class CustomKeyboardStaggerTest {
             return fragment to body
         }
         val (fragment, body) = editor()
+        val reading = body.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.keyboard_geometry_reading_header)
+        assertFalse(reading.isChecked)
+        reading.isChecked = true
+        assertTrue(store.read(GeometryKeyboard.SUMIRE, false).showReadingAboveSideCandidates)
+        assertTrue(editor().second.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.keyboard_geometry_reading_header).isChecked)
+        assertFalse(store.read(GeometryKeyboard.SUMIRE, true).showReadingAboveSideCandidates)
+        assertFalse(KeyboardGeometryPreferences(prefs, "other").read(GeometryKeyboard.SUMIRE, false).showReadingAboveSideCandidates)
         val placement = body.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_placement)
         val width = body.findViewById<SeekBar>(R.id.keyboard_geometry_candidate_width)
         assertEquals(android.view.View.GONE, (width.parent as android.view.View).visibility)
@@ -77,6 +84,7 @@ class CustomKeyboardStaggerTest {
         ReflectionHelpers.getField<SeekBar.OnSeekBarChangeListener>(width, "mOnSeekBarChangeListener")
             .onProgressChanged(width, 25, true)
         assertEquals(40, store.read(GeometryKeyboard.SUMIRE, false).sideCandidateWidthPercent)
+        assertTrue(store.read(GeometryKeyboard.SUMIRE, false).showReadingAboveSideCandidates)
         assertEquals(4, editor().second.findViewById<RadioGroup>(R.id.keyboard_geometry_candidate_placement).checkedRadioButtonId)
         assertEquals(shape, store.read(GeometryKeyboard.SUMIRE, false).geometry)
         assertEquals(GeometryCandidatePlacement.TOP, store.read(GeometryKeyboard.SUMIRE, true).candidates)

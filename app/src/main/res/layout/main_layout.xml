@@ -118,6 +118,17 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.SideCandidateReadingView
+            android:id="@+id/side_candidate_reading"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constrainedHeight="true"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/suggestion_visibility"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
         <!-- Visibility Toggle Button -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/suggestion_visibility"

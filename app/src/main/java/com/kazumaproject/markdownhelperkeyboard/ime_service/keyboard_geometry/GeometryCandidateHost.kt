@@ -284,6 +284,7 @@ internal class GeometryCandidateHost(
 
     fun detach(): Boolean {
         val container = panel ?: return false
+        parent?.findViewById<SideCandidateReadingView>(R.id.side_candidate_reading)?.setReading("")
         if (verticalSpacingApplied) {
             recycler.removeItemDecoration(verticalSpacing)
             verticalSpacingApplied = false

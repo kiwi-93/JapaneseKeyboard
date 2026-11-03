@@ -4051,6 +4051,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        clearSideCandidateReading()
         backspaceHistoryCoordinator.cancel()
         deletedBuffer.clear()
         if (!restarting) resetSoftwareModifiers()
@@ -6397,6 +6398,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
     }
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
+        clearSideCandidateReading()
         stopSplitKeyboard()
         super.onStartInputView(editorInfo, restarting)
         flickInputPreviewCoordinator.cancel(restore = true)
@@ -6811,6 +6813,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
     }
 
     override fun onFinishInput() {
+        clearSideCandidateReading()
         backspaceHistoryCoordinator.cancel()
         deletedBuffer.clear()
         resetSoftwareModifiers()
@@ -6837,6 +6840,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        clearSideCandidateReading()
         backspaceHistoryCoordinator.cancel()
         resetSoftwareModifiers()
         cancelMorseInputs(clearPattern = true)
@@ -19978,6 +19982,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
                         applyRawComposingFallback(string)
                     }
                 } finally {
+                    refreshSideCandidateReading()
                     scheduleSplitPresentation()
                 }
             }
@@ -20718,7 +20723,30 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
         }
     }
 
+    private fun clearSideCandidateReading() {
+        mainLayoutBinding?.sideCandidateReading?.setReading("")
+        floatingKeyboardBinding?.sideCandidateReading?.setReading("")
+    }
+
+    private fun refreshSideCandidateReading() {
+        val floating = isKeyboardFloatingMode == true
+        val attached = if (floating) floatingGeometryCandidateHost?.attached == true else dockedGeometryCandidateHost?.attached == true
+        val type = geometryKeyboardForCurrentMode()
+        val config = if (attached && type != null) geometryPreferencesForMode().read(type,
+            resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) else null
+        val eligible = isInputViewActive && config?.showReadingAboveSideCandidates == true &&
+            config.candidates in setOf(GeometryCandidatePlacement.LEFT, GeometryCandidatePlacement.RIGHT) &&
+            currentCandidateStripContent is CandidateStripContent.Candidates && !suppressSuggestions &&
+            !isFullCandidateViewVisible() && !floatingCandidateSurfaceActive && splitController == null &&
+            !keyboardSymbolViewState.value.isShown && suggestionAdapter?.isInlineSuggestionStripShown() != true
+        val reading = if (eligible) inputString.value + stringInTail.get() else ""
+        val color = if (reading.isNotEmpty()) resolveCandidatePanelColors().text else null
+        mainLayoutBinding?.sideCandidateReading?.setReading(if (floating) "" else reading, color)
+        floatingKeyboardBinding?.sideCandidateReading?.setReading(if (floating) reading else "", color)
+    }
+
     private fun detachGeometryCandidates() {
+        clearSideCandidateReading()
         if (dockedGeometryCandidateHost?.detach() == true) lastSuggestionLayoutKey = null
         floatingGeometryCandidateHost?.detach()
         mainLayoutBinding?.root?.fallbackTouchExclusion = null
@@ -20797,6 +20825,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
                 horizontalSpacingDp = if (type == GeometryKeyboard.QWERTY) config.centerCandidateSpacingDp else 0)
             main.root.fallbackTouchExclusion = { x, y -> dockedGeometryCandidateHost?.containsScreenPoint(x, y) == true }
         }
+        refreshSideCandidateReading()
     }
 
     private fun geometryPreferencesForMode(mode: TenKeyQWERTYMode = qwertyMode.value): KeyboardGeometryPreferences {
@@ -32073,6 +32102,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             runOnMainThread {
                 if (gemmaFloatingText != next) { gemmaFloatingRevision++; gemmaFloatingText = next }
                 refreshGemmaFloating()
+                refreshSideCandidateReading()
             }
             composingGuide?.update(p0, inputString.value + stringInTail.get(), isLiveConversionEnable == true)
         }
@@ -32102,6 +32132,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
         clearGemmaFloating()
         val finished = composingTextArbiter.finishCanonical()
         composingGuide?.update(null)
+        runOnMainThread { clearSideCandidateReading() }
         clearPhysicalCandidateCompositionSession("finish composing text")
         return finished
     }
@@ -32122,6 +32153,7 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             editorMutationRevision.advance()
             composingTextArbiter.markCanonicalFinished()
             composingGuide?.update(null)
+            runOnMainThread { clearSideCandidateReading() }
             clearPhysicalCandidateCompositionSession("commit text")
         }
         return committed

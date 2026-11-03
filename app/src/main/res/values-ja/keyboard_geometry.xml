@@ -50,4 +50,6 @@
     <string name="keyboard_geometry_column_stagger">カラムスタッガード（隣の列との高低差）: %1$d dp</string>
     <string name="keyboard_geometry_column_stagger_summary">0で整列。プラスで左ほど下、マイナスで左ほど上になります。キーの向きは変わりません。</string>
     <string name="keyboard_geometry_column_stagger_reset">段差を0に戻す</string>
+    <string name="keyboard_geometry_reading_header">上部に変換前の文字を表示</string>
+    <string name="keyboard_geometry_reading_header_summary">候補を左右に配置している間、キーボード上部に入力中の読みを大きく表示します。</string>
 </resources>

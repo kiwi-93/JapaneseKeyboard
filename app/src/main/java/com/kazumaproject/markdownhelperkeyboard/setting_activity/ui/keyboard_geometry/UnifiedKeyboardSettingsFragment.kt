@@ -410,6 +410,13 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
                 override fun onStopTrackingTouch(bar: SeekBar?) = Unit
             })
         })
+        widthControls.addView(com.google.android.material.materialswitch.MaterialSwitch(ctx).apply {
+            id = R.id.keyboard_geometry_reading_header
+            setText(R.string.keyboard_geometry_reading_header)
+            isChecked = geometry.showReadingAboveSideCandidates
+            setOnCheckedChangeListener { _, checked -> save(geometry.copy(showReadingAboveSideCandidates = checked)) }
+        })
+        widthControls.addView(TextView(ctx).apply { setText(R.string.keyboard_geometry_reading_header_summary) })
         widthControls.isVisible = geometry.candidates in setOf(GeometryCandidatePlacement.LEFT, GeometryCandidatePlacement.RIGHT)
         body.addView(widthControls)
         placement.setOnCheckedChangeListener { _, id ->
