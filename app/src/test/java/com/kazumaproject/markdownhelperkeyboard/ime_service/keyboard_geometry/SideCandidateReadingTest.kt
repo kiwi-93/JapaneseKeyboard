@@ -76,6 +76,38 @@ class SideCandidateReadingTest {
         assertEquals("とうきょう", view.readingTextView.text.toString())
     }
 
+    @Test fun sizeCanGrowAndShrinkForTheSameReadingAndFitsShortStrips() {
+        val view = SideCandidateReadingView(context)
+        for (size in listOf(12, 48, 18, 36)) {
+            view.setReading("きょうは", textSizeSp = size)
+            layout(view, height = 160)
+            assertEquals(size * context.resources.displayMetrics.scaledDensity, view.readingTextView.textSize, .1f)
+            assertEquals("きょうは", view.readingTextView.text.toString())
+        }
+        view.setReading("きょうは", textSizeSp = 48)
+        layout(view, height = 20)
+        val metrics = view.readingTextView.paint.fontMetrics
+        assertTrue(metrics.bottom - metrics.top <= 16.1f)
+        layout(view, height = 160)
+        assertEquals(48 * context.resources.displayMetrics.scaledDensity, view.readingTextView.textSize, .1f)
+    }
+
+    @Test fun sizeDefaultsAndResetsStayScopedToTheSelectedCandidateSettings() {
+        prefs.edit().clear().commit()
+        val store = KeyboardGeometryPreferences(prefs, "sized")
+        assertEquals(24, store.read(GeometryKeyboard.SUMIRE, false).sideCandidateReadingSizeSp)
+        for ((requested, expected) in listOf(0 to 12, 32 to 32, 100 to 48)) {
+            store.saveCandidateDisplay(GeometryKeyboard.SUMIRE, false, KeyboardGeometryPreference(
+                showReadingAboveSideCandidates = true, sideCandidateReadingSizeSp = requested))
+            assertEquals(expected, store.read(GeometryKeyboard.SUMIRE, false).sideCandidateReadingSizeSp)
+        }
+        assertEquals(24, store.read(GeometryKeyboard.SUMIRE, true).sideCandidateReadingSizeSp)
+        assertEquals(24, KeyboardGeometryPreferences(prefs, "other").read(GeometryKeyboard.SUMIRE, false).sideCandidateReadingSizeSp)
+        store.resetCandidateDisplay(GeometryKeyboard.SUMIRE, false)
+        assertEquals(24, store.read(GeometryKeyboard.SUMIRE, false).sideCandidateReadingSizeSp)
+        assertFalse(store.read(GeometryKeyboard.SUMIRE, false).showReadingAboveSideCandidates)
+    }
+
     @Test fun movingCandidatesBackRestoresTheListAndClearsOnlyTheReading() {
         val root = FrameLayout(context)
         val strip = FrameLayout(context)
@@ -153,7 +185,7 @@ class SideCandidateReadingTest {
         val store = KeyboardGeometryPreferences(prefs)
         fun save(placement: GeometryCandidatePlacement, enabled: Boolean = true) {
             store.saveCandidateDisplay(GeometryKeyboard.SUMIRE, false,
-                KeyboardGeometryPreference(candidates = placement, showReadingAboveSideCandidates = enabled))
+                KeyboardGeometryPreference(candidates = placement, showReadingAboveSideCandidates = enabled, sideCandidateReadingSizeSp = 32))
         }
         fun refresh() = ReflectionHelpers.callInstanceMethod<Unit>(service, "refreshSideCandidateReading")
         for (ruby in listOf(false, true)) for (live in listOf(false, true)) {
@@ -164,6 +196,8 @@ class SideCandidateReadingTest {
                 save(side); refresh()
                 val active = if (isFloating) floating.sideCandidateReading else main.sideCandidateReading
                 val inactive = if (isFloating) main.sideCandidateReading else floating.sideCandidateReading
+                layout(active, height = 160)
+                assertEquals(32 * context.resources.displayMetrics.scaledDensity, active.readingTextView.textSize, .1f)
                 assertEquals("きょうは", active.readingTextView.text.toString())
                 assertEquals(View.VISIBLE, active.visibility)
                 assertEquals(View.GONE, inactive.visibility)

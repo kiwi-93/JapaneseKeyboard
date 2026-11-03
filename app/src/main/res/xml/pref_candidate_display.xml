@@ -11,6 +11,7 @@
         <Preference android:key="candidate_display_unavailable" android:title="@string/candidate_display_unavailable_title" android:summary="@string/candidate_display_unavailable" />
         <SeekBarPreference android:key="candidate_display_width" android:persistent="false" android:title="@string/candidate_display_width" android:max="50" app:min="15" app:showSeekBarValue="true" />
         <SwitchPreferenceCompat android:key="candidate_display_reading_header" android:persistent="false" android:title="@string/keyboard_geometry_reading_header" android:summary="@string/keyboard_geometry_reading_header_summary" />
+        <SeekBarPreference android:key="candidate_display_reading_header_size" android:persistent="false" android:title="@string/keyboard_geometry_reading_header_size" android:max="48" app:min="12" app:showSeekBarValue="true" />
         <SwitchPreferenceCompat android:key="candidate_display_vertical" android:persistent="false" android:title="@string/candidate_display_vertical" />
         <SwitchPreferenceCompat android:key="candidate_display_right_to_left" android:persistent="false" android:title="@string/keyboard_geometry_candidate_right_to_left" />
         <SwitchPreferenceCompat android:key="candidate_display_wrap" android:persistent="false" android:title="@string/keyboard_geometry_candidate_wrap" />

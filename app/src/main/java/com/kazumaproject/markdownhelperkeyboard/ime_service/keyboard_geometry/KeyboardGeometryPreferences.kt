@@ -18,7 +18,14 @@ data class KeyboardGeometryPreference(
     val sideCandidateVerticalSpacingDp: Int = SideCandidateSizing.DEFAULT_VERTICAL_SPACING_DP,
     val centerCandidateSpacingDp: Int = 0,
     val showReadingAboveSideCandidates: Boolean = false,
+    val sideCandidateReadingSizeSp: Int = SideCandidateReadingSizing.DEFAULT_SP,
 )
+
+object SideCandidateReadingSizing {
+    const val MIN_SP = 12
+    const val MAX_SP = 48
+    const val DEFAULT_SP = 24
+}
 
 /** Size rules only; settings previews and IME views remain separate. */
 object SideCandidateSizing {
@@ -82,6 +89,8 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
             ).normalized(),
             candidates = if (allowed) placement else GeometryCandidatePlacement.TOP,
             showReadingAboveSideCandidates = runCatching { preferences.getBoolean("${p}_reading_header", false) }.getOrDefault(false),
+            sideCandidateReadingSizeSp = int("reading_header_size_sp", SideCandidateReadingSizing.DEFAULT_SP)
+                .coerceIn(SideCandidateReadingSizing.MIN_SP, SideCandidateReadingSizing.MAX_SP),
             sideCandidateWidthPercent = int("candidate_width_percent", SideCandidateSizing.DEFAULT_PERCENT)
                 .coerceIn(SideCandidateSizing.MIN_PERCENT, SideCandidateSizing.MAX_PERCENT),
             sideCandidateVerticalText = runCatching { preferences.getBoolean("${p}_candidate_vertical_text", false) }.getOrDefault(false),
@@ -106,6 +115,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         val editor = preferences.edit().putInt("${p}_split", if (keyboard == GeometryKeyboard.QWERTY) value.splitPercent else 0)
             .putInt("${p}_candidate_width_percent", preference.sideCandidateWidthPercent.coerceIn(SideCandidateSizing.MIN_PERCENT, SideCandidateSizing.MAX_PERCENT))
             .putBoolean("${p}_reading_header", preference.showReadingAboveSideCandidates)
+            .putInt("${p}_reading_header_size_sp", preference.sideCandidateReadingSizeSp.coerceIn(SideCandidateReadingSizing.MIN_SP, SideCandidateReadingSizing.MAX_SP))
             .putBoolean("${p}_candidate_vertical_text", preference.sideCandidateVerticalText)
             .putBoolean("${p}_candidate_right_to_left", preference.sideCandidateRightToLeft)
             .putBoolean("${p}_candidate_wrap_long_text", preference.sideCandidateWrapLongText)
@@ -125,6 +135,7 @@ class KeyboardGeometryPreferences(private val preferences: SharedPreferences, pr
         preferences.edit()
             .putInt("${p}_candidate_width_percent", preference.sideCandidateWidthPercent.coerceIn(SideCandidateSizing.MIN_PERCENT, SideCandidateSizing.MAX_PERCENT))
             .putBoolean("${p}_reading_header", preference.showReadingAboveSideCandidates)
+            .putInt("${p}_reading_header_size_sp", preference.sideCandidateReadingSizeSp.coerceIn(SideCandidateReadingSizing.MIN_SP, SideCandidateReadingSizing.MAX_SP))
             .putBoolean("${p}_candidate_vertical_text", preference.sideCandidateVerticalText)
             .putBoolean("${p}_candidate_right_to_left", preference.sideCandidateRightToLeft)
             .putBoolean("${p}_candidate_wrap_long_text", preference.sideCandidateWrapLongText)

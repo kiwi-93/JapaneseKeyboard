@@ -12,8 +12,10 @@ import com.kazumaproject.core.ui.font.KeyboardFontApplicator
 class SideCandidateReadingView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
     HorizontalScrollView(context, attrs) {
     private var scrollToEndRequested = false
+    private var requestedTextSizeSp = SideCandidateReadingSizing.DEFAULT_SP
     internal val readingTextView = TextView(context).apply {
         setSingleLine(true)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, SideCandidateReadingSizing.DEFAULT_SP.toFloat())
         includeFontPadding = true
         gravity = Gravity.START or Gravity.CENTER_VERTICAL
         isFocusable = false
@@ -32,7 +34,9 @@ class SideCandidateReadingView @JvmOverloads constructor(context: Context, attrs
         visibility = GONE
     }
 
-    fun setReading(reading: String, color: Int? = null) {
+    fun setReading(reading: String, color: Int? = null, textSizeSp: Int = SideCandidateReadingSizing.DEFAULT_SP) {
+        val size = textSizeSp.coerceIn(SideCandidateReadingSizing.MIN_SP, SideCandidateReadingSizing.MAX_SP)
+        if (requestedTextSizeSp != size) { requestedTextSizeSp = size; requestLayout() }
         val changed = readingTextView.text.toString() != reading
         if (changed) {
             readingTextView.text = reading
@@ -40,7 +44,6 @@ class SideCandidateReadingView @JvmOverloads constructor(context: Context, attrs
         }
         if (color != null) readingTextView.setTextColor(color)
         KeyboardFontApplicator.apply(readingTextView, KeyboardFontApplicator.processSnapshot)
-        fitTextHeight()
         visibility = if (reading.isEmpty()) GONE else VISIBLE
         if (reading.isEmpty()) {
             scrollToEndRequested = false
@@ -58,17 +61,16 @@ class SideCandidateReadingView @JvmOverloads constructor(context: Context, attrs
         scrollToEndRequested = false
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        fitTextHeight()
-    }
-
-    private fun fitTextHeight() {
-        val requested = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 24f, resources.displayMetrics)
-        val available = height - paddingTop - paddingBottom
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // Fit against the incoming constraint, so increasing the setting can also grow a
+        // wrap-content strip rather than being capped by its previous, smaller height.
+        val requested = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, requestedTextSizeSp.toFloat(), resources.displayMetrics)
+        val available = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED) Int.MAX_VALUE
+            else MeasureSpec.getSize(heightMeasureSpec) - paddingTop - paddingBottom
         val metrics = readingTextView.paint.fontMetrics
         val lineRatio = (metrics.bottom - metrics.top) / readingTextView.textSize.coerceAtLeast(1f)
         val target = if (available > 0 && lineRatio > 0f) minOf(requested, available / lineRatio) else requested
         readingTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, target)
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 }

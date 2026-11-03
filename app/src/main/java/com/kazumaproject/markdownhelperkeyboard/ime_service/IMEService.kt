@@ -11,6 +11,7 @@ import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.Ge
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.GeometryCandidateHost
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.geometryBoundsInHost
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.KeyboardGeometryPreferences
+import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.SideCandidateReadingSizing
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.SideCandidateSizing
 import com.kazumaproject.markdownhelperkeyboard.setting_activity.keyboard_size.IndependentKeyboardSize
 import com.kazumaproject.markdownhelperkeyboard.setting_activity.keyboard_size.IndependentKeyboardSizePreferences
@@ -20741,8 +20742,9 @@ class IMEService : InputMethodService(), LifecycleOwner, InputConnection,
             !keyboardSymbolViewState.value.isShown && suggestionAdapter?.isInlineSuggestionStripShown() != true
         val reading = if (eligible) inputString.value + stringInTail.get() else ""
         val color = if (reading.isNotEmpty()) resolveCandidatePanelColors().text else null
-        mainLayoutBinding?.sideCandidateReading?.setReading(if (floating) "" else reading, color)
-        floatingKeyboardBinding?.sideCandidateReading?.setReading(if (floating) reading else "", color)
+        val textSize = config?.sideCandidateReadingSizeSp ?: SideCandidateReadingSizing.DEFAULT_SP
+        mainLayoutBinding?.sideCandidateReading?.setReading(if (floating) "" else reading, color, textSize)
+        floatingKeyboardBinding?.sideCandidateReading?.setReading(if (floating) reading else "", color, textSize)
     }
 
     private fun detachGeometryCandidates() {

@@ -51,6 +51,7 @@ import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.Ge
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.GeometryKeyboard
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.KeyboardGeometryPreference
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.KeyboardGeometryPreferences
+import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.SideCandidateReadingSizing
 import com.kazumaproject.markdownhelperkeyboard.ime_service.keyboard_geometry.SideCandidateSizing
 import com.kazumaproject.markdownhelperkeyboard.repository.KeyboardRepository
 import com.kazumaproject.markdownhelperkeyboard.setting_activity.AppPreference
@@ -410,13 +411,41 @@ class UnifiedKeyboardSettingsFragment : Fragment() {
                 override fun onStopTrackingTouch(bar: SeekBar?) = Unit
             })
         })
+        val readingSizeControls = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
         widthControls.addView(com.google.android.material.materialswitch.MaterialSwitch(ctx).apply {
             id = R.id.keyboard_geometry_reading_header
             setText(R.string.keyboard_geometry_reading_header)
             isChecked = geometry.showReadingAboveSideCandidates
-            setOnCheckedChangeListener { _, checked -> save(geometry.copy(showReadingAboveSideCandidates = checked)) }
+            setOnCheckedChangeListener { _, checked ->
+                save(geometry.copy(showReadingAboveSideCandidates = checked))
+                readingSizeControls.isVisible = checked
+            }
         })
         widthControls.addView(TextView(ctx).apply { setText(R.string.keyboard_geometry_reading_header_summary) })
+        val sizeCaption = TextView(ctx).apply {
+            text = getString(R.string.keyboard_geometry_reading_header_size_value, geometry.sideCandidateReadingSizeSp)
+        }
+        readingSizeControls.addView(sizeCaption)
+        readingSizeControls.addView(SeekBar(ctx).apply {
+            id = R.id.keyboard_geometry_reading_header_size
+            max = SideCandidateReadingSizing.MAX_SP -
+                SideCandidateReadingSizing.MIN_SP
+            progress = geometry.sideCandidateReadingSizeSp - SideCandidateReadingSizing.MIN_SP
+            contentDescription = sizeCaption.text
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar?, value: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    val size = value + SideCandidateReadingSizing.MIN_SP
+                    sizeCaption.text = getString(R.string.keyboard_geometry_reading_header_size_value, size)
+                    contentDescription = sizeCaption.text
+                    save(geometry.copy(sideCandidateReadingSizeSp = size))
+                }
+                override fun onStartTrackingTouch(bar: SeekBar?) = Unit
+                override fun onStopTrackingTouch(bar: SeekBar?) = Unit
+            })
+        })
+        readingSizeControls.isVisible = geometry.showReadingAboveSideCandidates
+        widthControls.addView(readingSizeControls)
         widthControls.isVisible = geometry.candidates in setOf(GeometryCandidatePlacement.LEFT, GeometryCandidatePlacement.RIGHT)
         body.addView(widthControls)
         placement.setOnCheckedChangeListener { _, id ->

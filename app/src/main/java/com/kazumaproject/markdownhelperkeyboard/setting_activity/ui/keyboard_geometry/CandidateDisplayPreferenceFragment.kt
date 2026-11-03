@@ -92,6 +92,9 @@ class CandidateDisplayPreferenceFragment : CommonPreferenceFragment() {
         findPreference<SeekBarPreference>("candidate_display_width")?.setOnPreferenceChangeListener { _, value ->
             saveGeometry { copy(sideCandidateWidthPercent = value as Int) }; true
         }
+        findPreference<SeekBarPreference>("candidate_display_reading_header_size")?.setOnPreferenceChangeListener { _, value ->
+            saveGeometry { copy(sideCandidateReadingSizeSp = value as Int) }; true
+        }
         findPreference<SwitchPreferenceCompat>("candidate_display_reading_header")?.setOnPreferenceChangeListener { _, value ->
             saveGeometry { copy(showReadingAboveSideCandidates = value as Boolean) }; true
         }
@@ -200,7 +203,7 @@ class CandidateDisplayPreferenceFragment : CommonPreferenceFragment() {
         val side = target != GeometryKeyboard.QWERTY && value.candidates != GeometryCandidatePlacement.TOP
         val vertical = side && value.sideCandidateVerticalText
         val highlighted = arguments?.getString(ARG_HIGHLIGHT_PREFERENCE_KEY)
-        val sideOnly = verticalOnly + setOf("candidate_display_width", "candidate_display_vertical", "candidate_display_reading_header")
+        val sideOnly = verticalOnly + setOf("candidate_display_width", "candidate_display_vertical", "candidate_display_reading_header", "candidate_display_reading_header_size")
         val targetUnavailable = requestedPreferenceKey in sideOnly && (!side || (requestedPreferenceKey in verticalOnly && !vertical))
         findPreference<Preference>("candidate_display_unavailable")?.apply {
             if (side && requestedPreferenceKey in verticalOnly && !vertical) {
@@ -218,6 +221,7 @@ class CandidateDisplayPreferenceFragment : CommonPreferenceFragment() {
             view?.post { requestedPreferenceKey?.let(::scrollToPreference) }
         }
         findPreference<SeekBarPreference>("candidate_display_width")?.apply { this.value = value.sideCandidateWidthPercent; conditionVisible = side }
+        findPreference<SeekBarPreference>("candidate_display_reading_header_size")?.apply { this.value = value.sideCandidateReadingSizeSp; conditionVisible = side; isEnabled = value.showReadingAboveSideCandidates }
         findPreference<SwitchPreferenceCompat>("candidate_display_reading_header")?.apply { isChecked = value.showReadingAboveSideCandidates; conditionVisible = side }
         findPreference<SwitchPreferenceCompat>("candidate_display_vertical")?.apply { isChecked = value.sideCandidateVerticalText; conditionVisible = side }
         findPreference<SwitchPreferenceCompat>("candidate_display_right_to_left")?.apply { isChecked = value.sideCandidateRightToLeft; conditionVisible = vertical }
