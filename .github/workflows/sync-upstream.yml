@@ -14,6 +14,7 @@ on:
       - 'morse_keyboard/**'
       - 'flexbox/**'
       - 'zenz/**'
+      - 'ai-runtime/**'
       - 'gradle/**'
       - '*.gradle'
       - '*.gradle.kts'

@@ -17,6 +17,7 @@ import com.kazumaproject.custom_keyboard.data.KeyType
 import com.kazumaproject.custom_keyboard.data.KeyboardLayout
 import com.kazumaproject.custom_keyboard.data.SpacerItem
 import com.kazumaproject.core.ui.geometry.KeyboardGeometry
+import com.kazumaproject.core.ui.geometry.KeyboardCurveDirection
 import com.kazumaproject.core.ui.geometry.KeyboardViewGeometry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -64,6 +65,49 @@ class FlickKeyboardViewNearestKeyTest {
                 assertEquals(listOf(KeyAction.Text("$i")), actions)
             }
             if (step != 0) assertEquals(400 + extra, required)
+        }
+    }
+
+    @Test fun legacySumireCurveKeepsKeyCentersAndTapsUnchanged() {
+        val view = keyboard()
+        val buttons = (0 until view.childCount).map(view::getChildAt)
+        val flatCenters = buttons.map(KeyboardViewGeometry::centerInParent)
+
+        for (direction in KeyboardCurveDirection.entries) {
+            actions.clear()
+            view.setSumireGeometry(KeyboardGeometry(curveDegrees = 20, curveDirection = direction), 400)
+            layout(view)
+
+            buttons.forEachIndexed { index, key ->
+                assertEquals("direction=$direction key=$index rotation", 0f, key.rotation, 0f)
+                val center = KeyboardViewGeometry.centerInParent(key)
+                assertEquals("direction=$direction key=$index center", flatCenters[index], center)
+                tap(view, center.first, center.second)
+            }
+            assertEquals("direction=$direction", keys().keys.map { it.action }, actions)
+        }
+    }
+
+    @Test fun legacySumireCurveKeepsStandardFlickVertical() {
+        for (direction in KeyboardCurveDirection.entries) {
+            actions.clear()
+            val view = keyboard()
+            val data = keys().keys.map { it.copy(keyType = KeyType.STANDARD_FLICK) }
+            val maps = data.associate { it.label to listOf(mapOf(
+                FlickDirection.TAP to FlickAction.Input(it.label),
+                FlickDirection.UP to FlickAction.Input(it.label + "-up")
+            )) }
+            view.setKeyboard(KeyboardLayout(data, maps, 2, 2), KeyHitTestMode.NEAREST_KEY)
+            view.setSumireGeometry(KeyboardGeometry(curveDegrees = 25, curveDirection = direction), 400)
+            layout(view)
+            val key = view.getChildAt(0)
+            assertEquals("direction=$direction rotation", 0f, key.rotation, 0f)
+            val x = key.cx()
+            val y = key.cy()
+            event(view, MotionEvent.ACTION_DOWN, x, y)
+            event(view, MotionEvent.ACTION_MOVE, x, y - 100f)
+            event(view, MotionEvent.ACTION_UP, x, y - 100f)
+            assertEquals("direction=$direction", listOf(KeyAction.Text("a-up")), actions)
         }
     }
 
